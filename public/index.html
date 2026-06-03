@@ -18,14 +18,14 @@
     .date-nav { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
     .date-nav button {
       background: #111; border: 1px solid #333; color: #888;
-      width: 30px; height: 30px; border-radius: 6px; cursor: pointer;
-      font-size: 1rem; display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+      width: 30px; height: 30px; border-radius: 6px; cursor: pointer; font-size: 1rem;
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s;
     }
     .date-nav button:hover { border-color: #fff; color: #fff; }
     .date-display {
-      font-size: 0.85rem; font-weight: 600; color: #fff;
-      background: #111; border: 1px solid #333; border-radius: 6px;
-      padding: 0.3rem 0.75rem; cursor: pointer; transition: border-color 0.15s; white-space: nowrap;
+      font-size: 0.85rem; font-weight: 600; color: #fff; background: #111;
+      border: 1px solid #333; border-radius: 6px; padding: 0.3rem 0.75rem;
+      cursor: pointer; transition: border-color 0.15s; white-space: nowrap;
     }
     .date-display:hover { border-color: #888; }
     #datePickerInput { display: none; }
@@ -36,68 +36,78 @@
     }
     .today-btn:hover { border-color: #fff; color: #fff; }
 
-    main { max-width: 1280px; margin: 0 auto; padding: 2rem; }
+    main { max-width: 1400px; margin: 0 auto; padding: 2rem; }
 
-    .cost-warning {
-      background: #111; border: 1px solid #333; border-radius: 10px;
-      padding: 1rem 1.5rem; margin-bottom: 1.5rem;
-      display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
-    }
-    .cost-warning p { font-size: 0.85rem; color: #888; }
-    .cost-warning p strong { color: #fff; }
-
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-    .stat-card { background: #111; border: 1px solid #222; border-radius: 12px; padding: 1.5rem; }
-    .stat-card .label { font-size: 0.68rem; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.4rem; }
-    .stat-card .value { font-size: 1.7rem; font-weight: 700; color: #fff; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: #111; border: 1px solid #222; border-radius: 12px; padding: 1.25rem 1.5rem; }
+    .stat-card .label { font-size: 0.68rem; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.35rem; }
+    .stat-card .value { font-size: 1.6rem; font-weight: 700; }
     .stat-card .value.neg { color: #f87171; }
-    .stat-card .sub { font-size: 0.7rem; color: #444; margin-top: 0.25rem; }
+    .stat-card .value.sm  { font-size: 1.2rem; }
 
-    .action-row { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-    .btn-add {
+    .action-row { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap; }
+    .btn-primary {
       background: #fff; color: #000; border: none; border-radius: 8px;
       padding: 0.55rem 1.25rem; font-size: 0.875rem; font-weight: 700; cursor: pointer; transition: background 0.15s;
     }
-    .btn-add:hover { background: #ddd; }
-    .btn-cost {
-      background: transparent; border: 1px solid #333; color: #888;
-      border-radius: 8px; padding: 0.55rem 1.25rem; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    .btn-primary:hover { background: #ddd; }
+    .toggle-fulfilled {
+      background: transparent; border: 1px solid #333; color: #555;
+      border-radius: 8px; padding: 0.5rem 1rem; font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; margin-left: auto;
     }
-    .btn-cost:hover { border-color: #fff; color: #fff; }
+    .toggle-fulfilled:hover { border-color: #fff; color: #fff; }
+    .toggle-fulfilled.active { border-color: #555; color: #aaa; }
 
     .card { background: #111; border: 1px solid #222; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
     .card-title { font-size: 0.72rem; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1.25rem; }
 
     .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 700px; }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
     th {
-      text-align: left; font-size: 0.67rem; color: #444;
-      text-transform: uppercase; letter-spacing: 0.05em;
-      padding: 0.4rem 0.75rem; border-bottom: 1px solid #222; white-space: nowrap;
+      text-align: left; font-size: 0.65rem; color: #444; text-transform: uppercase;
+      letter-spacing: 0.05em; padding: 0.4rem 0.75rem; border-bottom: 1px solid #222; white-space: nowrap;
     }
-    td { padding: 0.65rem 0.75rem; border-bottom: 1px solid #1a1a1a; font-size: 0.875rem; color: #aaa; }
+    th.section-start { border-left: 1px solid #1a1a1a; }
+    td { padding: 0.65rem 0.75rem; border-bottom: 1px solid #1a1a1a; font-size: 0.85rem; color: #aaa; vertical-align: middle; }
+    td.section-start { border-left: 1px solid #1a1a1a; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: #0d0d0d; }
+
     .td-bold { font-weight: 600; color: #fff; }
     .td-profit { font-weight: 700; }
     .td-profit.pos { color: #fff; }
     .td-profit.neg { color: #f87171; }
-    .tag { display: inline-block; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 4px; padding: 1px 7px; font-size: 0.7rem; color: #888; }
-    .empty { text-align: center; color: #444; padding: 3rem; font-size: 0.85rem; }
+
+    .tag { display: inline-block; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 4px; padding: 1px 7px; font-size: 0.7rem; color: #888; white-space: nowrap; }
+
+    .status-pill {
+      display: inline-block; border-radius: 999px; font-size: 0.65rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 8px;
+    }
+    .status-active    { background: #1a1a1a; border: 1px solid #333; color: #888; }
+    .status-fulfilled { background: #0d0d0d; border: 1px solid #1a1a1a; color: #333; }
+
+    .progress-bar { display: flex; align-items: center; gap: 0.5rem; }
+    .progress-track { flex: 1; min-width: 60px; background: #1a1a1a; border-radius: 999px; height: 5px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 999px; background: #fff; }
+    .progress-fill.done { background: #444; }
+    .progress-label { font-size: 0.72rem; color: #555; white-space: nowrap; }
+
     .row-btn {
       background: transparent; border: 1px solid #2a2a2a; color: #555;
-      padding: 2px 8px; border-radius: 4px; cursor: pointer;
-      font-size: 0.7rem; margin-left: 3px; transition: all 0.15s;
+      padding: 3px 10px; border-radius: 4px; cursor: pointer;
+      font-size: 0.72rem; font-weight: 600; transition: all 0.15s; white-space: nowrap;
     }
     .row-btn:hover { border-color: #fff; color: #fff; }
-    .total-row td { border-top: 1px solid #333; border-bottom: none; padding-top: 0.8rem; font-weight: 700; color: #fff; }
+    .row-btn.log { border-color: #333; color: #777; }
+    .row-btn.log:hover { border-color: #fff; color: #fff; }
+    .row-btn.del:hover { border-color: #f87171; color: #f87171; }
 
-    .bar-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.85rem; }
-    .bar-label { font-size: 0.75rem; min-width: 210px; max-width: 210px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #aaa; }
-    .bar-track { flex: 1; background: #1a1a1a; border-radius: 999px; height: 8px; overflow: hidden; }
-    .bar-fill { height: 100%; border-radius: 999px; background: #fff; }
-    .bar-fill.neg { background: #f87171; }
-    .bar-value { font-size: 0.72rem; color: #555; min-width: 100px; text-align: right; white-space: nowrap; }
+    .not-logged { color: #333; font-size: 0.8rem; font-style: italic; }
+
+    .empty { text-align: center; color: #444; padding: 3rem; font-size: 0.85rem; }
+    .total-row td { border-top: 1px solid #333 !important; border-bottom: none; padding-top: 0.85rem; font-weight: 700; color: #fff; }
 
     /* Modals */
     .modal-overlay {
@@ -108,48 +118,39 @@
     .modal-overlay.open { display: flex; }
     .modal {
       background: #111; border: 1px solid #333; border-radius: 14px;
-      padding: 2rem; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+      padding: 2rem; width: 100%; max-width: 440px; max-height: 92vh; overflow-y: auto;
     }
-    .modal h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1.5rem; }
+    .modal h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .modal-sub { font-size: 0.78rem; color: #555; margin-bottom: 1.5rem; }
     .form-group { margin-bottom: 1rem; }
     .form-group label { display: block; font-size: 0.7rem; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.3rem; }
     .form-group input, .form-group select {
       width: 100%; background: #000; border: 1px solid #333; color: #fff;
-      padding: 0.6rem 0.875rem; border-radius: 8px; font-size: 0.875rem; outline: none;
-      transition: border-color 0.15s; font-family: inherit;
+      padding: 0.6rem 0.875rem; border-radius: 8px; font-size: 0.875rem;
+      outline: none; transition: border-color 0.15s; font-family: inherit;
     }
     .form-group input:focus, .form-group select:focus { border-color: #fff; }
     .form-group select option { background: #111; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
-    /* Cost rows in cost modal */
-    .cost-row {
-      display: grid; grid-template-columns: 1fr auto; align-items: center;
-      gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #1a1a1a;
+    .calc-preview {
+      background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 8px;
+      padding: 0.875rem 1rem; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.4rem;
     }
-    .cost-row:last-child { border-bottom: none; }
-    .cost-row-label { font-size: 0.8rem; color: #aaa; }
-    .cost-row input {
-      width: 110px; background: #000; border: 1px solid #333; color: #fff;
-      padding: 0.4rem 0.6rem; border-radius: 6px; font-size: 0.875rem; outline: none;
-      transition: border-color 0.15s; text-align: right;
-    }
-    .cost-row input:focus { border-color: #fff; }
+    .calc-row { display: flex; justify-content: space-between; font-size: 0.8rem; }
+    .calc-row .cl { color: #555; }
+    .calc-row .cv { font-weight: 600; color: #aaa; }
+    .calc-row.total .cl { color: #888; }
+    .calc-row.total .cv { color: #fff; font-size: 0.9rem; }
+    .calc-row.total.neg .cv { color: #f87171; }
 
-    .profit-preview {
-      background: #0a0a0a; border: 1px solid #222; border-radius: 8px;
-      padding: 0.875rem 1rem; margin-bottom: 1rem;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .profit-preview .pp-label { font-size: 0.72rem; color: #555; text-transform: uppercase; letter-spacing: 0.05em; }
-    .profit-preview .pp-value { font-size: 1.1rem; font-weight: 700; }
     .modal-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
     .modal-actions button { flex: 1; padding: 0.65rem; border-radius: 8px; cursor: pointer; font-size: 0.875rem; font-weight: 600; border: none; }
     .btn-save { background: #fff; color: #000; }
     .btn-save:hover { background: #ddd; }
     .btn-cancel { background: #1a1a1a; color: #666; border: 1px solid #2a2a2a !important; }
     .btn-cancel:hover { color: #fff; border-color: #fff !important; }
-    .btn-del { background: #1a1a1a; color: #666; border: 1px solid #2a2a2a !important; }
+    .btn-del { background: #1a1a1a; color: #666; border: 1px solid #2a2a2a !important; flex: 0.6 !important; }
     .btn-del:hover { color: #f87171; border-color: #f87171 !important; }
     .modal-error { color: #f87171; font-size: 0.8rem; margin-top: 0.5rem; display: none; }
 
@@ -157,7 +158,6 @@
       main { padding: 1rem; }
       header { padding: 1rem; }
       .row2 { grid-template-columns: 1fr; }
-      .bar-label { min-width: 130px; max-width: 130px; }
     }
   </style>
 </head>
@@ -176,60 +176,55 @@
 </header>
 
 <main>
-  <div class="cost-warning" id="costWarning" style="display:none">
-    <p id="costWarningText"><strong>Some orders are missing a cost per lead.</strong> Set costs below to calculate profits.</p>
-  </div>
-
   <div class="stats">
     <div class="stat-card">
       <div class="label">Net Profit</div>
       <div class="value" id="statProfit">—</div>
-      <div class="sub" id="statProfitSub"></div>
     </div>
     <div class="stat-card">
-      <div class="label">Total Orders</div>
-      <div class="value" id="statOrders">—</div>
+      <div class="label">Revenue</div>
+      <div class="value sm" id="statRevenue">—</div>
     </div>
     <div class="stat-card">
-      <div class="label">Total Leads</div>
+      <div class="label">Commission Paid</div>
+      <div class="value sm" id="statCommission">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Leads Delivered</div>
       <div class="value" id="statLeads">—</div>
     </div>
     <div class="stat-card">
-      <div class="label">Replacements</div>
-      <div class="value" id="statReplacements">—</div>
+      <div class="label">Active Orders</div>
+      <div class="value" id="statActive">—</div>
     </div>
   </div>
 
   <div class="action-row">
-    <button class="btn-add"  onclick="openOrderModal()">+ Add Order</button>
-    <button class="btn-cost" onclick="openCostModal()">Set Cost Per Lead</button>
+    <button class="btn-primary" onclick="openOrderModal()">+ New Order</button>
+    <button class="toggle-fulfilled" id="toggleFulfilledBtn" onclick="toggleFulfilled()">Show Fulfilled</button>
   </div>
 
   <div class="card">
     <div class="card-title">Orders</div>
     <div class="table-wrap" id="ordersWrap">
-      <div class="empty">No orders for this day</div>
+      <div class="empty">No orders yet</div>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Profit by Product</div>
-    <div id="byProduct"><div class="empty">No data</div></div>
   </div>
 </main>
 
-<!-- Add / Edit Order Modal -->
+<!-- New / Edit Order Modal -->
 <div class="modal-overlay" id="orderModal">
   <div class="modal">
-    <h3 id="orderModalTitle">Add Order</h3>
+    <h3 id="orderModalTitle">New Order</h3>
+    <div class="modal-sub">Order details — set once when the order is placed</div>
     <input type="hidden" id="editOrderId" />
     <div class="form-group">
-      <label>Date</label>
-      <input type="date" id="oDate" onchange="updatePreview()" />
+      <label>Client Name <span style="color:#333">(optional)</span></label>
+      <input type="text" id="oClient" placeholder="Client or account name" />
     </div>
     <div class="form-group">
       <label>Product</label>
-      <select id="oProduct" onchange="updatePreview()">
+      <select id="oProduct">
         <option value="">Select product…</option>
         <option>SPANISH IUL LEADS</option>
         <option>SPANISH FINAL EXPENSE LEADS</option>
@@ -240,27 +235,15 @@
         <option>VOLUME SPANISH FINAL EXPENSE</option>
       </select>
     </div>
-    <div class="form-group">
-      <label>Client Name <span style="color:#333">(optional)</span></label>
-      <input type="text" id="oClient" placeholder="Client or order name" />
-    </div>
     <div class="row2">
       <div class="form-group">
-        <label>Quantity</label>
-        <input type="number" id="oQty" placeholder="25" min="1" oninput="updatePreview()" />
+        <label>Total Quantity</label>
+        <input type="number" id="oQty" placeholder="100" min="1" />
       </div>
       <div class="form-group">
         <label>Price Per Lead ($)</label>
-        <input type="number" id="oPrice" placeholder="40.00" step="0.01" min="0" oninput="updatePreview()" />
+        <input type="number" id="oPrice" placeholder="40.00" step="0.01" min="0" />
       </div>
-    </div>
-    <div class="form-group">
-      <label>Replacements</label>
-      <input type="number" id="oReplacements" placeholder="0" min="0" value="0" oninput="updatePreview()" />
-    </div>
-    <div class="profit-preview" id="profitPreview" style="display:none">
-      <span class="pp-label">Est. Net Profit</span>
-      <span class="pp-value" id="ppValue">—</span>
     </div>
     <div class="modal-error" id="orderErr"></div>
     <div class="modal-actions">
@@ -271,92 +254,71 @@
   </div>
 </div>
 
-<!-- Set Cost Per Lead Modal -->
-<div class="modal-overlay" id="costModal">
+<!-- Log / Edit Delivery Modal -->
+<div class="modal-overlay" id="deliveryModal">
   <div class="modal">
-    <h3>Set Cost Per Lead</h3>
+    <h3 id="deliveryModalTitle">Log Delivery</h3>
+    <div class="modal-sub" id="deliveryModalSub"></div>
+    <input type="hidden" id="deliveryOrderId" />
     <div class="form-group">
       <label>Date</label>
-      <input type="date" id="cDate" />
+      <input type="date" id="dDate" onchange="updateCalc()" />
     </div>
-    <div style="margin-bottom:1rem">
-      <div class="cost-row" id="cost-row-SPANISH IUL LEADS">
-        <span class="cost-row-label">Spanish IUL Leads</span>
-        <input type="number" step="0.01" min="0" placeholder="—" data-product="SPANISH IUL LEADS" />
+    <div class="row2">
+      <div class="form-group">
+        <label>Leads Delivered</label>
+        <input type="number" id="dLeads" placeholder="25" min="0" oninput="updateCalc()" />
       </div>
-      <div class="cost-row" id="cost-row-SPANISH FINAL EXPENSE LEADS">
-        <span class="cost-row-label">Spanish Final Expense</span>
-        <input type="number" step="0.01" min="0" placeholder="—" data-product="SPANISH FINAL EXPENSE LEADS" />
-      </div>
-      <div class="cost-row" id="cost-row-SPANISH MORTGAGE PROTECTION LEADS">
-        <span class="cost-row-label">Spanish Mortgage Protection</span>
-        <input type="number" step="0.01" min="0" placeholder="—" data-product="SPANISH MORTGAGE PROTECTION LEADS" />
-      </div>
-      <div class="cost-row" id="cost-row-$1 SPANISH LEADS">
-        <span class="cost-row-label">$1 Spanish Leads</span>
-        <input type="number" step="0.01" min="0" placeholder="—" data-product="$1 SPANISH LEADS" />
-      </div>
-      <div class="cost-row" id="cost-row-AGED SPANISH LEADS">
-        <span class="cost-row-label">Aged Spanish Leads</span>
-        <input type="number" step="0.01" min="0" placeholder="—" data-product="AGED SPANISH LEADS" />
-      </div>
-      <div class="cost-row" id="cost-row-VOLUME SPANISH IUL">
-        <span class="cost-row-label">Volume Spanish IUL</span>
-        <input type="number" step="0.01" min="0" placeholder="—" data-product="VOLUME SPANISH IUL" />
-      </div>
-      <div class="cost-row" id="cost-row-VOLUME SPANISH FINAL EXPENSE">
-        <span class="cost-row-label">Volume Spanish Final Expense</span>
-        <input type="number" step="0.01" min="0" placeholder="—" data-product="VOLUME SPANISH FINAL EXPENSE" />
+      <div class="form-group">
+        <label>Cost Per Lead ($)</label>
+        <input type="number" id="dCost" placeholder="15.00" step="0.01" min="0" oninput="updateCalc()" />
       </div>
     </div>
-    <div class="modal-error" id="costErr"></div>
+
+    <div class="calc-preview" id="calcPreview" style="display:none">
+      <div class="calc-row"><span class="cl">Revenue</span><span class="cv" id="calcRevenue">—</span></div>
+      <div class="calc-row"><span class="cl">Cost</span><span class="cv" id="calcCost">—</span></div>
+      <div class="calc-row"><span class="cl">Commission</span><span class="cv" id="calcCommission">—</span></div>
+      <div class="calc-row total" id="calcTotalRow"><span class="cl">Net Profit</span><span class="cv" id="calcProfit">—</span></div>
+    </div>
+
+    <div class="modal-error" id="deliveryErr"></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal('costModal')">Cancel</button>
-      <button class="btn-save"   onclick="saveCost()">Save</button>
+      <button class="btn-del" id="deleteDeliveryBtn" style="display:none" onclick="deleteDelivery()">Remove</button>
+      <button class="btn-cancel" onclick="closeModal('deliveryModal')">Cancel</button>
+      <button class="btn-save"   onclick="saveDelivery()">Save</button>
     </div>
   </div>
 </div>
 
 <script>
-  const PRODUCTS = [
-    'SPANISH IUL LEADS',
-    'SPANISH FINAL EXPENSE LEADS',
-    'SPANISH MORTGAGE PROTECTION LEADS',
-    '$1 SPANISH LEADS',
-    'AGED SPANISH LEADS',
-    'VOLUME SPANISH IUL',
-    'VOLUME SPANISH FINAL EXPENSE',
-  ];
+  const COMMISSION_RATES = { '$1 SPANISH LEADS': 0.20, 'AGED SPANISH LEADS': 0.20 };
+  const DEFAULT_RATE     = 0.10;
 
   const fmt  = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtP = n => (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const cls  = n => n >= 0 ? 'pos' : 'neg';
 
-  function esc(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   function localToday() {
     const d = new Date();
-    return d.getFullYear() + '-' +
-      String(d.getMonth() + 1).padStart(2, '0') + '-' +
-      String(d.getDate()).padStart(2, '0');
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   }
 
-  const COMMISSION_RATES = { '$1 SPANISH LEADS': 0.20, 'AGED SPANISH LEADS': 0.20 };
-  const DEFAULT_COMMISSION_RATE = 0.10;
+  let currentDate    = localToday();
+  let dashData       = null;
+  let showFulfilled  = false;
+  let deliveryOrder  = null; // the order currently being logged
 
-  let currentDate = localToday();
-  let dashData    = null;
-
-  function fmtDateDisplay(d) {
-    const [y, m, day] = d.split('-');
-    return new Date(y, m - 1, day).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  function fmtDate(d) {
+    const [y,m,day] = d.split('-');
+    return new Date(y, m-1, day).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
   }
 
   function shiftDate(delta) {
-    const d = new Date(currentDate + 'T12:00:00');
-    d.setDate(d.getDate() + delta);
+    const d = new Date(currentDate+'T12:00:00');
+    d.setDate(d.getDate()+delta);
     currentDate = d.toISOString().split('T')[0];
     document.getElementById('datePickerInput').value = currentDate;
     load();
@@ -368,145 +330,121 @@
     load();
   }
 
-  function onDatePick(val) {
-    if (!val) return;
-    currentDate = val;
-    load();
+  function onDatePick(val) { if (val) { currentDate = val; load(); } }
+
+  function toggleFulfilled() {
+    showFulfilled = !showFulfilled;
+    const btn = document.getElementById('toggleFulfilledBtn');
+    btn.textContent = showFulfilled ? 'Hide Fulfilled' : 'Show Fulfilled';
+    btn.classList.toggle('active', showFulfilled);
+    if (dashData) render(dashData);
   }
 
   async function load() {
-    document.getElementById('dateDisplay').textContent = fmtDateDisplay(currentDate);
+    document.getElementById('dateDisplay').textContent = fmtDate(currentDate);
     const res = await fetch(`/api/dashboard?date=${currentDate}`);
     dashData  = await res.json();
     render(dashData);
   }
 
   function render(d) {
-    // Cost warning — check if any orders have no cost set for their product
-    const missingCost = d.orders.some(o => o.costPerLead == null);
-    document.getElementById('costWarning').style.display = missingCost ? 'flex' : 'none';
-
     // Stats
+    const p = d.totalNetProfit;
     const profitEl = document.getElementById('statProfit');
-    if (d.totalProfit != null) {
-      profitEl.textContent = fmtP(d.totalProfit);
-      profitEl.className   = 'value' + (d.totalProfit < 0 ? ' neg' : '');
-      document.getElementById('statProfitSub').textContent = '';
-    } else {
-      profitEl.textContent = '—';
-      profitEl.className   = 'value';
-      document.getElementById('statProfitSub').textContent = d.orders.length ? 'Set costs per product to calculate' : '';
-    }
+    profitEl.textContent = fmtP(p);
+    profitEl.className   = 'value' + (p < 0 ? ' neg' : '');
 
-    document.getElementById('statOrders').textContent       = d.totalOrders;
-    document.getElementById('statLeads').textContent        = d.totalLeads;
-    document.getElementById('statReplacements').textContent = d.totalReplacements;
+    document.getElementById('statRevenue').textContent    = fmt(d.totalRevenue);
+    document.getElementById('statCommission').textContent = fmt(d.totalCommission);
+    document.getElementById('statLeads').textContent      = d.totalLeads;
+    document.getElementById('statActive').textContent     = d.orders.filter(o => !o.fulfilled).length;
 
     // Orders table
-    const wrap = document.getElementById('ordersWrap');
-    if (!d.orders.length) {
-      wrap.innerHTML = '<div class="empty">No orders for this day</div>';
-    } else {
-      wrap.innerHTML = `<table>
-        <thead><tr>
-          <th>Client</th><th>Product</th><th>Qty</th>
-          <th>Price/Lead</th><th>Cost/Lead</th><th>Replacements</th><th>Commission</th><th>Net Profit</th><th></th>
-        </tr></thead>
-        <tbody>
-          ${d.orders.map(o => {
-            const p = o.netProfit;
-            return `<tr>
-              <td class="td-bold">${esc(o.clientName) || '<span style="color:#333">—</span>'}</td>
-              <td><span class="tag">${esc(o.product)}</span></td>
-              <td>${o.quantity}</td>
-              <td>${fmt(o.pricePerLead)}</td>
-              <td>${o.costPerLead != null ? fmt(o.costPerLead) : '<span style="color:#555">not set</span>'}</td>
-              <td>${o.replacements}</td>
-              <td>${fmt(o.commission || 0)}</td>
-              <td class="td-profit ${p != null ? cls(p) : ''}">${p != null ? fmtP(p) : '—'}</td>
-              <td><button class="row-btn" onclick='openEditOrder(${JSON.stringify(o)})'>Edit</button></td>
-            </tr>`;
-          }).join('')}
-          ${d.totalProfit != null ? `
-          <tr class="total-row">
-            <td colspan="7" style="color:#555;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em">Total</td>
-            <td class="td-profit ${cls(d.totalProfit)}">${fmtP(d.totalProfit)}</td>
-            <td></td>
-          </tr>` : ''}
-        </tbody>
-      </table>`;
+    const orders = showFulfilled ? d.orders : d.orders.filter(o => !o.fulfilled);
+    const wrap   = document.getElementById('ordersWrap');
+
+    if (!orders.length) {
+      wrap.innerHTML = `<div class="empty">${d.orders.length ? 'No active orders — click "Show Fulfilled" to see completed ones' : 'No orders yet — click "+ New Order" to get started'}</div>`;
+      return;
     }
 
-    // By product breakdown
-    const bpEl = document.getElementById('byProduct');
-    if (!d.byProduct.length) {
-      bpEl.innerHTML = '<div class="empty">No data</div>';
-    } else {
-      const maxAbs = Math.max(...d.byProduct.map(p => Math.abs(p.profit)), 1);
-      bpEl.innerHTML = d.byProduct.map(p => {
-        const costLabel = d.costs[p.product] != null ? `· cost ${fmt(d.costs[p.product])}/lead` : '· <span style="color:#555">no cost set</span>';
-        return `<div class="bar-row">
-          <span class="bar-label" title="${esc(p.product)}">${esc(p.product)}</span>
-          <div class="bar-track">
-            <div class="bar-fill ${p.profit < 0 ? 'neg' : ''}" style="width:${(Math.abs(p.profit)/maxAbs*100).toFixed(1)}%"></div>
-          </div>
-          <span class="bar-value">${p.hasAllCosts ? fmtP(p.profit) : '—'} · ${p.leads} leads</span>
+    const todayRows = orders.map(o => {
+      const del    = o.todayDelivery;
+      const pct    = Math.min(100, Math.round(o.totalDelivered / o.quantity * 100));
+      const done   = o.fulfilled;
+
+      const progressHtml = `
+        <div class="progress-bar">
+          <div class="progress-track"><div class="progress-fill ${done?'done':''}" style="width:${pct}%"></div></div>
+          <span class="progress-label">${o.totalDelivered}/${o.quantity}</span>
         </div>`;
-      }).join('');
-    }
+
+      const todayHtml = del
+        ? `<td class="section-start">${del.leadsDelivered}</td>
+           <td>${fmt(del.costPerLead)}</td>
+           <td>${fmt(del.commission)}</td>
+           <td class="td-profit ${cls(del.netProfit)}">${fmtP(del.netProfit)}</td>
+           <td><button class="row-btn" onclick="openDeliveryModal(${o.id}, true)">Edit</button></td>`
+        : `<td class="section-start not-logged" colspan="4">Not logged</td>
+           <td><button class="row-btn log" onclick="openDeliveryModal(${o.id}, false)">+ Log</button></td>`;
+
+      return `<tr>
+        <td><span class="status-pill ${done?'status-fulfilled':'status-active'}">${done?'Fulfilled':'Active'}</span></td>
+        <td class="td-bold">${esc(o.clientName)||'<span style="color:#333">—</span>'}</td>
+        <td><span class="tag">${esc(o.product)}</span></td>
+        <td>${o.quantity} @ ${fmt(o.pricePerLead)}</td>
+        <td>${progressHtml}</td>
+        ${todayHtml}
+        <td><button class="row-btn" onclick="openEditOrder(${JSON.stringify(o).replace(/'/g,"&#39;")})">Edit</button></td>
+      </tr>`;
+    }).join('');
+
+    // Total row for today's deliveries with data
+    const withDel = orders.filter(o => o.todayDelivery);
+    const totalRow = withDel.length > 1 ? `
+      <tr class="total-row">
+        <td colspan="5" style="color:#555;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em">Daily Total</td>
+        <td class="section-start">${d.totalLeads}</td>
+        <td></td>
+        <td>${fmt(d.totalCommission)}</td>
+        <td class="td-profit ${cls(d.totalNetProfit)}">${fmtP(d.totalNetProfit)}</td>
+        <td></td><td></td>
+      </tr>` : '';
+
+    wrap.innerHTML = `<table>
+      <thead><tr>
+        <th>Status</th><th>Client</th><th>Product</th><th>Order</th><th>Progress</th>
+        <th class="section-start">Leads Today</th><th>Cost/Lead</th><th>Commission</th><th>Net Profit</th><th></th>
+        <th></th>
+      </tr></thead>
+      <tbody>${todayRows}${totalRow}</tbody>
+    </table>`;
   }
 
   // ── Order modal ──
   function openOrderModal() {
-    document.getElementById('orderModalTitle').textContent  = 'Add Order';
+    document.getElementById('orderModalTitle').textContent  = 'New Order';
     document.getElementById('editOrderId').value            = '';
-    document.getElementById('oDate').value                  = currentDate;
-    document.getElementById('oProduct').value               = '';
     document.getElementById('oClient').value                = '';
+    document.getElementById('oProduct').value               = '';
     document.getElementById('oQty').value                   = '';
     document.getElementById('oPrice').value                 = '';
-    document.getElementById('oReplacements').value          = '0';
     document.getElementById('deleteOrderBtn').style.display = 'none';
     document.getElementById('orderErr').style.display       = 'none';
-    document.getElementById('profitPreview').style.display  = 'none';
     openModal('orderModal');
+    setTimeout(() => document.getElementById('oClient').focus(), 100);
   }
 
   function openEditOrder(order) {
     document.getElementById('orderModalTitle').textContent  = 'Edit Order';
     document.getElementById('editOrderId').value            = order.id;
-    document.getElementById('oDate').value                  = order.date;
-    document.getElementById('oProduct').value               = order.product;
     document.getElementById('oClient').value                = order.clientName || '';
+    document.getElementById('oProduct').value               = order.product;
     document.getElementById('oQty').value                   = order.quantity;
     document.getElementById('oPrice').value                 = order.pricePerLead;
-    document.getElementById('oReplacements').value          = order.replacements;
     document.getElementById('deleteOrderBtn').style.display = '';
     document.getElementById('orderErr').style.display       = 'none';
-    updatePreview();
     openModal('orderModal');
-  }
-
-  function updatePreview() {
-    const product = document.getElementById('oProduct').value;
-    const qty     = parseFloat(document.getElementById('oQty').value);
-    const price   = parseFloat(document.getElementById('oPrice').value);
-    const reps    = parseFloat(document.getElementById('oReplacements').value) || 0;
-    const prev    = document.getElementById('profitPreview');
-    const val     = document.getElementById('ppValue');
-
-    if (!product || !qty || !price) { prev.style.display = 'none'; return; }
-
-    const rate       = COMMISSION_RATES[product] ?? DEFAULT_COMMISSION_RATE;
-    const commission = price * qty * rate;
-
-    const cost = dashData?.costs?.[product] ?? null;
-    if (cost == null) { prev.style.display = 'none'; return; }
-
-    const profit      = (price - cost) * qty - reps * cost - commission;
-    prev.style.display = 'flex';
-    val.textContent   = fmtP(profit);
-    val.style.color   = profit >= 0 ? '#fff' : '#f87171';
   }
 
   async function saveOrder() {
@@ -515,24 +453,22 @@
     errEl.style.display = 'none';
 
     const body = {
-      date:         document.getElementById('oDate').value,
-      product:      document.getElementById('oProduct').value,
       clientName:   document.getElementById('oClient').value.trim(),
+      product:      document.getElementById('oProduct').value,
       quantity:     document.getElementById('oQty').value,
       pricePerLead: document.getElementById('oPrice').value,
-      replacements: document.getElementById('oReplacements').value || 0,
     };
 
-    if (!body.date || !body.product || !body.quantity || !body.pricePerLead) {
-      errEl.textContent   = 'Date, product, quantity and price per lead are required';
+    if (!body.product || !body.quantity || !body.pricePerLead) {
+      errEl.textContent   = 'Product, quantity and price per lead are required';
       errEl.style.display = 'block';
       return;
     }
 
     const res = await fetch(id ? `/api/orders/${id}` : '/api/orders', {
-      method:  id ? 'PUT' : 'POST',
+      method: id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(body),
+      body: JSON.stringify(body),
     });
 
     if (res.ok) { closeModal('orderModal'); load(); }
@@ -544,58 +480,102 @@
   }
 
   async function deleteOrder() {
-    if (!confirm('Delete this order?')) return;
+    if (!confirm('Delete this order and all its delivery history?')) return;
     const id = document.getElementById('editOrderId').value;
     await fetch(`/api/orders/${id}`, { method: 'DELETE' });
     closeModal('orderModal');
     load();
   }
 
-  // ── Cost modal ──
-  function openCostModal() {
-    document.getElementById('cDate').value = currentDate;
-    // Pre-fill with existing costs for this day
-    const costs = dashData?.costs || {};
-    document.querySelectorAll('#costModal [data-product]').forEach(input => {
-      const c = costs[input.dataset.product];
-      input.value = c != null ? c : '';
-    });
-    document.getElementById('costErr').style.display = 'none';
-    openModal('costModal');
+  // ── Delivery modal ──
+  function openDeliveryModal(orderId, isEdit) {
+    const order = dashData.orders.find(o => o.id === orderId);
+    if (!order) return;
+    deliveryOrder = order;
+
+    document.getElementById('deliveryModalTitle').textContent = isEdit ? 'Edit Delivery' : 'Log Delivery';
+    document.getElementById('deliveryModalSub').textContent   = `${order.clientName || 'Order'} — ${order.product}`;
+    document.getElementById('deliveryOrderId').value          = orderId;
+    document.getElementById('dDate').value                    = currentDate;
+    document.getElementById('deliveryErr').style.display      = 'none';
+    document.getElementById('deleteDeliveryBtn').style.display = isEdit ? '' : 'none';
+
+    const del = order.todayDelivery;
+    document.getElementById('dLeads').value = del ? del.leadsDelivered : '';
+    document.getElementById('dCost').value  = del ? del.costPerLead    : '';
+
+    updateCalc();
+    openModal('deliveryModal');
+    setTimeout(() => document.getElementById('dLeads').focus(), 100);
   }
 
-  async function saveCost() {
-    const date  = document.getElementById('cDate').value;
-    const errEl = document.getElementById('costErr');
+  function updateCalc() {
+    const order  = deliveryOrder;
+    const leads  = parseFloat(document.getElementById('dLeads').value);
+    const cost   = parseFloat(document.getElementById('dCost').value);
+    const prev   = document.getElementById('calcPreview');
+
+    if (!order || !leads || isNaN(cost)) { prev.style.display = 'none'; return; }
+
+    const rate       = COMMISSION_RATES[order.product] ?? DEFAULT_RATE;
+    const revenue    = order.pricePerLead * leads;
+    const costTotal  = cost * leads;
+    const commission = revenue * rate;
+    const profit     = revenue - costTotal - commission;
+
+    document.getElementById('calcRevenue').textContent    = fmt(revenue);
+    document.getElementById('calcCost').textContent       = fmt(costTotal);
+    document.getElementById('calcCommission').textContent = `${fmt(commission)} (${rate*100}%)`;
+    document.getElementById('calcProfit').textContent     = fmtP(profit);
+
+    const totalRow = document.getElementById('calcTotalRow');
+    totalRow.classList.toggle('neg', profit < 0);
+
+    prev.style.display = 'flex';
+  }
+
+  async function saveDelivery() {
+    const id    = document.getElementById('deliveryOrderId').value;
+    const errEl = document.getElementById('deliveryErr');
     errEl.style.display = 'none';
 
-    if (!date) {
-      errEl.textContent   = 'Date is required';
+    const body = {
+      date:           document.getElementById('dDate').value,
+      leadsDelivered: document.getElementById('dLeads').value,
+      costPerLead:    document.getElementById('dCost').value,
+    };
+
+    if (!body.date || !body.leadsDelivered || !body.costPerLead) {
+      errEl.textContent   = 'Date, leads delivered and cost per lead are required';
       errEl.style.display = 'block';
       return;
     }
 
-    const costs = {};
-    document.querySelectorAll('#costModal [data-product]').forEach(input => {
-      costs[input.dataset.product] = input.value;
-    });
-
-    const res = await fetch('/api/daily-cost', {
+    const res = await fetch(`/api/orders/${id}/delivery`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ date, costs }),
+      body:    JSON.stringify(body),
     });
 
-    if (res.ok) { closeModal('costModal'); load(); }
+    if (res.ok) { closeModal('deliveryModal'); load(); }
     else {
       const d = await res.json();
-      errEl.textContent   = d.error || 'Error saving costs';
+      errEl.textContent   = d.error || 'Error saving delivery';
       errEl.style.display = 'block';
     }
   }
 
+  async function deleteDelivery() {
+    if (!confirm('Remove this delivery entry?')) return;
+    const id   = document.getElementById('deliveryOrderId').value;
+    const date = document.getElementById('dDate').value;
+    await fetch(`/api/orders/${id}/delivery/${date}`, { method: 'DELETE' });
+    closeModal('deliveryModal');
+    load();
+  }
+
   function openModal(id)  { document.getElementById(id).classList.add('open'); }
-  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); deliveryOrder = null; }
 
   document.querySelectorAll('.modal-overlay').forEach(el => {
     el.addEventListener('click', function(e) { if (e.target === this) closeModal(this.id); });
