@@ -260,10 +260,6 @@
     <h3 id="deliveryModalTitle">Log Delivery</h3>
     <div class="modal-sub" id="deliveryModalSub"></div>
     <input type="hidden" id="deliveryOrderId" />
-    <div class="form-group">
-      <label>Date</label>
-      <input type="date" id="dDate" onchange="updateCalc()" />
-    </div>
     <div class="row2">
       <div class="form-group">
         <label>Leads Delivered</label>
@@ -494,7 +490,7 @@
     deliveryOrder = order;
 
     document.getElementById('deliveryModalTitle').textContent = isEdit ? 'Edit Delivery' : 'Log Delivery';
-    document.getElementById('deliveryModalSub').textContent   = `${order.clientName || 'Order'} — ${order.product}`;
+    document.getElementById('deliveryModalSub').textContent   = `${order.clientName || 'Order'} — ${order.product} · ${fmtDate(currentDate)}`;
     document.getElementById('deliveryOrderId').value          = orderId;
     document.getElementById('dDate').value                    = currentDate;
     document.getElementById('deliveryErr').style.display      = 'none';
@@ -540,13 +536,13 @@
     errEl.style.display = 'none';
 
     const body = {
-      date:           document.getElementById('dDate').value,
+      date:           currentDate,
       leadsDelivered: document.getElementById('dLeads').value,
       costPerLead:    document.getElementById('dCost').value,
     };
 
-    if (!body.date || !body.leadsDelivered || !body.costPerLead) {
-      errEl.textContent   = 'Date, leads delivered and cost per lead are required';
+    if (!body.leadsDelivered || !body.costPerLead) {
+      errEl.textContent   = 'Leads delivered and cost per lead are required';
       errEl.style.display = 'block';
       return;
     }
@@ -567,9 +563,8 @@
 
   async function deleteDelivery() {
     if (!confirm('Remove this delivery entry?')) return;
-    const id   = document.getElementById('deliveryOrderId').value;
-    const date = document.getElementById('dDate').value;
-    await fetch(`/api/orders/${id}/delivery/${date}`, { method: 'DELETE' });
+    const id = document.getElementById('deliveryOrderId').value;
+    await fetch(`/api/orders/${id}/delivery/${currentDate}`, { method: 'DELETE' });
     closeModal('deliveryModal');
     load();
   }

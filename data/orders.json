@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1780454811849,
+    "clientName": "Cesar Alvarez",
+    "product": "SPANISH IUL LEADS",
+    "quantity": 35,
+    "pricePerLead": 35,
+    "deliveries": {
+      "2026-06-02": {
+        "leadsDelivered": 2,
+        "costPerLead": 19.32
+      },
+      "2026-06-01": {
+        "leadsDelivered": 2,
+        "costPerLead": 19.32
+      }
+    },
+    "createdAt": "2026-06-03T02:46:51.849Z"
+  }
+]
