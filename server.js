@@ -9,6 +9,16 @@ const PORT = process.env.PORT || 3002;
 const ORDERS_FILE = path.join(__dirname, 'data', 'orders.json');
 const COSTS_FILE  = path.join(__dirname, 'data', 'daily-costs.json');
 
+const PRODUCTS = [
+  'SPANISH IUL LEADS',
+  'SPANISH FINAL EXPENSE LEADS',
+  'SPANISH MORTGAGE PROTECTION LEADS',
+  '$1 SPANISH LEADS',
+  'AGED SPANISH LEADS',
+  'VOLUME SPANISH IUL',
+  'VOLUME SPANISH FINAL EXPENSE',
+];
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -23,55 +33,77 @@ function writeJSON(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-function calcProfit(order, costPerLead) {
-  return (order.pricePerLead - costPerLead) * order.quantity - order.replacements * costPerLead;
+// costs[date] = { "PRODUCT": costPerLead, ... }
+function calcProfit(order, costsForDate) {
+  const cost = costsForDate?.[order.product];
+  if (cost == null) return null;
+  return (order.pricePerLead - cost) * order.quantity - order.replacements * cost;
 }
 
-// Get daily cost
+// Get costs for a date
 app.get('/api/daily-cost', (req, res) => {
   const date  = req.query.date || new Date().toISOString().split('T')[0];
   const costs = readJSON(COSTS_FILE, {});
-  res.json({ date, costPerLead: costs[date] ?? null });
+  res.json({ date, costs: costs[date] || {} });
 });
 
-// Set daily cost
+// Set costs for a date — body: { date, costs: { PRODUCT: value, ... } }
+// Empty string values remove that product's cost; missing keys leave existing untouched
 app.post('/api/daily-cost', (req, res) => {
-  const { date, costPerLead } = req.body || {};
-  if (!date || costPerLead == null)
-    return res.status(400).json({ error: 'date and costPerLead are required' });
-  const costs = readJSON(COSTS_FILE, {});
-  costs[date] = parseFloat(costPerLead);
-  writeJSON(COSTS_FILE, costs);
-  res.json({ success: true, date, costPerLead: costs[date] });
+  const { date, costs: incoming } = req.body || {};
+  if (!date || !incoming || typeof incoming !== 'object')
+    return res.status(400).json({ error: 'date and costs object are required' });
+
+  const all = readJSON(COSTS_FILE, {});
+  if (!all[date]) all[date] = {};
+
+  for (const [product, val] of Object.entries(incoming)) {
+    if (!PRODUCTS.includes(product)) continue;
+    if (val === '' || val == null) {
+      delete all[date][product];
+    } else {
+      const n = parseFloat(val);
+      if (!isNaN(n)) all[date][product] = n;
+    }
+  }
+
+  if (Object.keys(all[date]).length === 0) delete all[date];
+  writeJSON(COSTS_FILE, all);
+  res.json({ success: true, date, costs: all[date] || {} });
 });
 
-// Dashboard data
+// Dashboard
 app.get('/api/dashboard', (req, res) => {
   const date        = req.query.date || new Date().toISOString().split('T')[0];
   const allOrders   = readJSON(ORDERS_FILE, []);
-  const costs       = readJSON(COSTS_FILE, {});
-  const costPerLead = costs[date] ?? null;
+  const allCosts    = readJSON(COSTS_FILE, {});
+  const costsForDay = allCosts[date] || {};
   const orders      = allOrders.filter(o => o.date === date);
 
   const enriched = orders.map(o => ({
     ...o,
-    netProfit: costPerLead != null ? calcProfit(o, costPerLead) : null,
+    costPerLead: costsForDay[o.product] ?? null,
+    netProfit:   calcProfit(o, costsForDay),
   }));
+
+  const knownProfits = enriched.filter(o => o.netProfit != null);
+  const totalProfit  = knownProfits.length ? knownProfits.reduce((s, o) => s + o.netProfit, 0) : null;
 
   const byProduct = {};
   for (const o of enriched) {
     if (!byProduct[o.product])
-      byProduct[o.product] = { product: o.product, orders: 0, leads: 0, replacements: 0, profit: 0 };
+      byProduct[o.product] = { product: o.product, orders: 0, leads: 0, replacements: 0, profit: 0, hasAllCosts: true };
     byProduct[o.product].orders       += 1;
     byProduct[o.product].leads        += o.quantity;
     byProduct[o.product].replacements += o.replacements;
-    if (costPerLead != null) byProduct[o.product].profit += o.netProfit;
+    if (o.netProfit != null) byProduct[o.product].profit += o.netProfit;
+    else byProduct[o.product].hasAllCosts = false;
   }
 
   res.json({
     date,
-    costPerLead,
-    totalProfit:       costPerLead != null ? enriched.reduce((s, o) => s + o.netProfit, 0) : null,
+    costs: costsForDay,
+    totalProfit,
     totalOrders:       orders.length,
     totalLeads:        orders.reduce((s, o) => s + o.quantity, 0),
     totalReplacements: orders.reduce((s, o) => s + o.replacements, 0),
@@ -135,6 +167,4 @@ app.delete('/api/orders/:id', (req, res) => {
   res.json({ success: true });
 });
 
-app.listen(PORT, () => {
-  console.log(`LLL Tracking: http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log(`LLL Tracking: http://localhost:${PORT}`));

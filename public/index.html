@@ -19,8 +19,7 @@
     .date-nav button {
       background: #111; border: 1px solid #333; color: #888;
       width: 30px; height: 30px; border-radius: 6px; cursor: pointer;
-      font-size: 1rem; display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s;
+      font-size: 1rem; display: flex; align-items: center; justify-content: center; transition: all 0.15s;
     }
     .date-nav button:hover { border-color: #fff; color: #fff; }
     .date-display {
@@ -51,7 +50,6 @@
     .stat-card { background: #111; border: 1px solid #222; border-radius: 12px; padding: 1.5rem; }
     .stat-card .label { font-size: 0.68rem; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.4rem; }
     .stat-card .value { font-size: 1.7rem; font-weight: 700; color: #fff; }
-    .stat-card .value.small { font-size: 1.3rem; }
     .stat-card .value.neg { color: #f87171; }
     .stat-card .sub { font-size: 0.7rem; color: #444; margin-top: 0.25rem; }
 
@@ -71,7 +69,7 @@
     .card-title { font-size: 0.72rem; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1.25rem; }
 
     .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 680px; }
+    table { width: 100%; border-collapse: collapse; min-width: 700px; }
     th {
       text-align: left; font-size: 0.67rem; color: #444;
       text-transform: uppercase; letter-spacing: 0.05em;
@@ -92,7 +90,6 @@
       font-size: 0.7rem; margin-left: 3px; transition: all 0.15s;
     }
     .row-btn:hover { border-color: #fff; color: #fff; }
-    .row-btn.del:hover { border-color: #f87171; color: #f87171; }
     .total-row td { border-top: 1px solid #333; border-bottom: none; padding-top: 0.8rem; font-weight: 700; color: #fff; }
 
     .bar-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.85rem; }
@@ -102,6 +99,7 @@
     .bar-fill.neg { background: #f87171; }
     .bar-value { font-size: 0.72rem; color: #555; min-width: 100px; text-align: right; white-space: nowrap; }
 
+    /* Modals */
     .modal-overlay {
       display: none; position: fixed; inset: 0;
       background: rgba(0,0,0,0.88); z-index: 1000;
@@ -110,7 +108,7 @@
     .modal-overlay.open { display: flex; }
     .modal {
       background: #111; border: 1px solid #333; border-radius: 14px;
-      padding: 2rem; width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto;
+      padding: 2rem; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
     }
     .modal h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1.5rem; }
     .form-group { margin-bottom: 1rem; }
@@ -123,6 +121,21 @@
     .form-group input:focus, .form-group select:focus { border-color: #fff; }
     .form-group select option { background: #111; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    /* Cost rows in cost modal */
+    .cost-row {
+      display: grid; grid-template-columns: 1fr auto; align-items: center;
+      gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #1a1a1a;
+    }
+    .cost-row:last-child { border-bottom: none; }
+    .cost-row-label { font-size: 0.8rem; color: #aaa; }
+    .cost-row input {
+      width: 110px; background: #000; border: 1px solid #333; color: #fff;
+      padding: 0.4rem 0.6rem; border-radius: 6px; font-size: 0.875rem; outline: none;
+      transition: border-color 0.15s; text-align: right;
+    }
+    .cost-row input:focus { border-color: #fff; }
+
     .profit-preview {
       background: #0a0a0a; border: 1px solid #222; border-radius: 8px;
       padding: 0.875rem 1rem; margin-bottom: 1rem;
@@ -164,7 +177,7 @@
 
 <main>
   <div class="cost-warning" id="costWarning" style="display:none">
-    <p><strong>Cost per lead not set for this day.</strong> Set it below to calculate profits.</p>
+    <p id="costWarningText"><strong>Some orders are missing a cost per lead.</strong> Set costs below to calculate profits.</p>
   </div>
 
   <div class="stats">
@@ -172,10 +185,6 @@
       <div class="label">Net Profit</div>
       <div class="value" id="statProfit">—</div>
       <div class="sub" id="statProfitSub"></div>
-    </div>
-    <div class="stat-card">
-      <div class="label">Cost Per Lead</div>
-      <div class="value small" id="statCost">—</div>
     </div>
     <div class="stat-card">
       <div class="label">Total Orders</div>
@@ -220,7 +229,7 @@
     </div>
     <div class="form-group">
       <label>Product</label>
-      <select id="oProduct">
+      <select id="oProduct" onchange="updatePreview()">
         <option value="">Select product…</option>
         <option>SPANISH IUL LEADS</option>
         <option>SPANISH FINAL EXPENSE LEADS</option>
@@ -270,10 +279,35 @@
       <label>Date</label>
       <input type="date" id="cDate" />
     </div>
-    <div class="form-group">
-      <label>Cost Per Lead ($)</label>
-      <input type="number" id="cCost" placeholder="15.00" step="0.01" min="0"
-             onkeydown="if(event.key==='Enter')saveCost()" />
+    <div style="margin-bottom:1rem">
+      <div class="cost-row" id="cost-row-SPANISH IUL LEADS">
+        <span class="cost-row-label">Spanish IUL Leads</span>
+        <input type="number" step="0.01" min="0" placeholder="—" data-product="SPANISH IUL LEADS" />
+      </div>
+      <div class="cost-row" id="cost-row-SPANISH FINAL EXPENSE LEADS">
+        <span class="cost-row-label">Spanish Final Expense</span>
+        <input type="number" step="0.01" min="0" placeholder="—" data-product="SPANISH FINAL EXPENSE LEADS" />
+      </div>
+      <div class="cost-row" id="cost-row-SPANISH MORTGAGE PROTECTION LEADS">
+        <span class="cost-row-label">Spanish Mortgage Protection</span>
+        <input type="number" step="0.01" min="0" placeholder="—" data-product="SPANISH MORTGAGE PROTECTION LEADS" />
+      </div>
+      <div class="cost-row" id="cost-row-$1 SPANISH LEADS">
+        <span class="cost-row-label">$1 Spanish Leads</span>
+        <input type="number" step="0.01" min="0" placeholder="—" data-product="$1 SPANISH LEADS" />
+      </div>
+      <div class="cost-row" id="cost-row-AGED SPANISH LEADS">
+        <span class="cost-row-label">Aged Spanish Leads</span>
+        <input type="number" step="0.01" min="0" placeholder="—" data-product="AGED SPANISH LEADS" />
+      </div>
+      <div class="cost-row" id="cost-row-VOLUME SPANISH IUL">
+        <span class="cost-row-label">Volume Spanish IUL</span>
+        <input type="number" step="0.01" min="0" placeholder="—" data-product="VOLUME SPANISH IUL" />
+      </div>
+      <div class="cost-row" id="cost-row-VOLUME SPANISH FINAL EXPENSE">
+        <span class="cost-row-label">Volume Spanish Final Expense</span>
+        <input type="number" step="0.01" min="0" placeholder="—" data-product="VOLUME SPANISH FINAL EXPENSE" />
+      </div>
     </div>
     <div class="modal-error" id="costErr"></div>
     <div class="modal-actions">
@@ -284,6 +318,16 @@
 </div>
 
 <script>
+  const PRODUCTS = [
+    'SPANISH IUL LEADS',
+    'SPANISH FINAL EXPENSE LEADS',
+    'SPANISH MORTGAGE PROTECTION LEADS',
+    '$1 SPANISH LEADS',
+    'AGED SPANISH LEADS',
+    'VOLUME SPANISH IUL',
+    'VOLUME SPANISH FINAL EXPENSE',
+  ];
+
   const fmt  = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtP = n => (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const cls  = n => n >= 0 ? 'pos' : 'neg';
@@ -335,8 +379,11 @@
   }
 
   function render(d) {
-    document.getElementById('costWarning').style.display = d.costPerLead == null ? 'flex' : 'none';
+    // Cost warning — check if any orders have no cost set for their product
+    const missingCost = d.orders.some(o => o.costPerLead == null);
+    document.getElementById('costWarning').style.display = missingCost ? 'flex' : 'none';
 
+    // Stats
     const profitEl = document.getElementById('statProfit');
     if (d.totalProfit != null) {
       profitEl.textContent = fmtP(d.totalProfit);
@@ -345,10 +392,9 @@
     } else {
       profitEl.textContent = '—';
       profitEl.className   = 'value';
-      document.getElementById('statProfitSub').textContent = 'Set cost per lead to calculate';
+      document.getElementById('statProfitSub').textContent = d.orders.length ? 'Set costs per product to calculate' : '';
     }
 
-    document.getElementById('statCost').textContent         = d.costPerLead != null ? fmt(d.costPerLead) : '—';
     document.getElementById('statOrders').textContent       = d.totalOrders;
     document.getElementById('statLeads').textContent        = d.totalLeads;
     document.getElementById('statReplacements').textContent = d.totalReplacements;
@@ -361,7 +407,7 @@
       wrap.innerHTML = `<table>
         <thead><tr>
           <th>Client</th><th>Product</th><th>Qty</th>
-          <th>Price/Lead</th><th>Replacements</th><th>Net Profit</th><th></th>
+          <th>Price/Lead</th><th>Cost/Lead</th><th>Replacements</th><th>Net Profit</th><th></th>
         </tr></thead>
         <tbody>
           ${d.orders.map(o => {
@@ -371,6 +417,7 @@
               <td><span class="tag">${esc(o.product)}</span></td>
               <td>${o.quantity}</td>
               <td>${fmt(o.pricePerLead)}</td>
+              <td>${o.costPerLead != null ? fmt(o.costPerLead) : '<span style="color:#555">not set</span>'}</td>
               <td>${o.replacements}</td>
               <td class="td-profit ${p != null ? cls(p) : ''}">${p != null ? fmtP(p) : '—'}</td>
               <td><button class="row-btn" onclick='openEditOrder(${JSON.stringify(o)})'>Edit</button></td>
@@ -378,7 +425,7 @@
           }).join('')}
           ${d.totalProfit != null ? `
           <tr class="total-row">
-            <td colspan="5" style="color:#555;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em">Total</td>
+            <td colspan="6" style="color:#555;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em">Total</td>
             <td class="td-profit ${cls(d.totalProfit)}">${fmtP(d.totalProfit)}</td>
             <td></td>
           </tr>` : ''}
@@ -386,24 +433,26 @@
       </table>`;
     }
 
-    // By product
+    // By product breakdown
     const bpEl = document.getElementById('byProduct');
     if (!d.byProduct.length) {
       bpEl.innerHTML = '<div class="empty">No data</div>';
     } else {
       const maxAbs = Math.max(...d.byProduct.map(p => Math.abs(p.profit)), 1);
-      bpEl.innerHTML = d.byProduct.map(p => `
-        <div class="bar-row">
+      bpEl.innerHTML = d.byProduct.map(p => {
+        const costLabel = d.costs[p.product] != null ? `· cost ${fmt(d.costs[p.product])}/lead` : '· <span style="color:#555">no cost set</span>';
+        return `<div class="bar-row">
           <span class="bar-label" title="${esc(p.product)}">${esc(p.product)}</span>
           <div class="bar-track">
             <div class="bar-fill ${p.profit < 0 ? 'neg' : ''}" style="width:${(Math.abs(p.profit)/maxAbs*100).toFixed(1)}%"></div>
           </div>
-          <span class="bar-value">${d.costPerLead != null ? fmtP(p.profit) : '—'} · ${p.leads} leads</span>
-        </div>`).join('');
+          <span class="bar-value">${p.hasAllCosts ? fmtP(p.profit) : '—'} · ${p.leads} leads</span>
+        </div>`;
+      }).join('');
     }
   }
 
-  // Order modal
+  // ── Order modal ──
   function openOrderModal() {
     document.getElementById('orderModalTitle').textContent  = 'Add Order';
     document.getElementById('editOrderId').value            = '';
@@ -415,7 +464,7 @@
     document.getElementById('oReplacements').value          = '0';
     document.getElementById('deleteOrderBtn').style.display = 'none';
     document.getElementById('orderErr').style.display       = 'none';
-    updatePreview();
+    document.getElementById('profitPreview').style.display  = 'none';
     openModal('orderModal');
   }
 
@@ -435,16 +484,16 @@
   }
 
   function updatePreview() {
-    const date  = document.getElementById('oDate').value;
-    const qty   = parseFloat(document.getElementById('oQty').value);
-    const price = parseFloat(document.getElementById('oPrice').value);
-    const reps  = parseFloat(document.getElementById('oReplacements').value) || 0;
-    const prev  = document.getElementById('profitPreview');
-    const val   = document.getElementById('ppValue');
+    const product = document.getElementById('oProduct').value;
+    const qty     = parseFloat(document.getElementById('oQty').value);
+    const price   = parseFloat(document.getElementById('oPrice').value);
+    const reps    = parseFloat(document.getElementById('oReplacements').value) || 0;
+    const prev    = document.getElementById('profitPreview');
+    const val     = document.getElementById('ppValue');
 
-    if (!qty || !price || !date) { prev.style.display = 'none'; return; }
+    if (!product || !qty || !price) { prev.style.display = 'none'; return; }
 
-    const cost = dashData?.costPerLead ?? null;
+    const cost = dashData?.costs?.[product] ?? null;
     if (cost == null) { prev.style.display = 'none'; return; }
 
     const profit      = (price - cost) * qty - reps * cost;
@@ -489,43 +538,51 @@
 
   async function deleteOrder() {
     if (!confirm('Delete this order?')) return;
-    const id  = document.getElementById('editOrderId').value;
+    const id = document.getElementById('editOrderId').value;
     await fetch(`/api/orders/${id}`, { method: 'DELETE' });
     closeModal('orderModal');
     load();
   }
 
-  // Cost modal
+  // ── Cost modal ──
   function openCostModal() {
     document.getElementById('cDate').value = currentDate;
-    document.getElementById('cCost').value = dashData?.costPerLead ?? '';
+    // Pre-fill with existing costs for this day
+    const costs = dashData?.costs || {};
+    document.querySelectorAll('#costModal [data-product]').forEach(input => {
+      const c = costs[input.dataset.product];
+      input.value = c != null ? c : '';
+    });
     document.getElementById('costErr').style.display = 'none';
     openModal('costModal');
-    setTimeout(() => document.getElementById('cCost').focus(), 100);
   }
 
   async function saveCost() {
     const date  = document.getElementById('cDate').value;
-    const cost  = document.getElementById('cCost').value;
     const errEl = document.getElementById('costErr');
     errEl.style.display = 'none';
 
-    if (!date || !cost) {
-      errEl.textContent   = 'Both date and cost are required';
+    if (!date) {
+      errEl.textContent   = 'Date is required';
       errEl.style.display = 'block';
       return;
     }
 
+    const costs = {};
+    document.querySelectorAll('#costModal [data-product]').forEach(input => {
+      costs[input.dataset.product] = input.value;
+    });
+
     const res = await fetch('/api/daily-cost', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ date, costPerLead: cost }),
+      body:    JSON.stringify({ date, costs }),
     });
 
     if (res.ok) { closeModal('costModal'); load(); }
     else {
       const d = await res.json();
-      errEl.textContent   = d.error || 'Error saving cost';
+      errEl.textContent   = d.error || 'Error saving costs';
       errEl.style.display = 'block';
     }
   }

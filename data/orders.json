@@ -8,5 +8,15 @@
     "pricePerLead": 35,
     "replacements": 0,
     "createdAt": "2026-06-03T01:52:54.004Z"
+  },
+  {
+    "id": 1780453070951,
+    "date": "2026-06-01",
+    "product": "AGED SPANISH LEADS",
+    "clientName": "Daniel constante",
+    "quantity": 130,
+    "pricePerLead": 5,
+    "replacements": 0,
+    "createdAt": "2026-06-03T02:17:50.952Z"
   }
 ]
