@@ -163,7 +163,7 @@ app.put('/api/orders/:id', (req, res) => {
     quantity:     b.quantity     != null ? parseInt(b.quantity)        : orders[idx].quantity,
     pricePerLead: b.pricePerLead != null ? parseFloat(b.pricePerLead)  : orders[idx].pricePerLead,
     replacements: b.replacements != null ? parseInt(b.replacements)    : orders[idx].replacements,
-    commission:   b.commission   != null ? parseFloat(b.commission)    : orders[idx].commission,
+    commission:   parseFloat((orders[idx].pricePerLead * orders[idx].quantity * (COMMISSION_RATES[orders[idx].product] ?? DEFAULT_COMMISSION_RATE)).toFixed(2)),
   };
   writeJSON(ORDERS_FILE, orders);
   res.json({ success: true, order: orders[idx] });

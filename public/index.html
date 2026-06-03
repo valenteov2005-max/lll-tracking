@@ -254,15 +254,9 @@
         <input type="number" id="oPrice" placeholder="40.00" step="0.01" min="0" oninput="updatePreview()" />
       </div>
     </div>
-    <div class="row2">
-      <div class="form-group">
-        <label>Replacements</label>
-        <input type="number" id="oReplacements" placeholder="0" min="0" value="0" oninput="updatePreview()" />
-      </div>
-      <div class="form-group">
-        <label>Commission ($) <span style="color:#333" id="commissionRateLabel">— 10%</span></label>
-        <input type="number" id="oCommission" placeholder="0.00" step="0.01" min="0" oninput="commissionEdited=true;updatePreview()" />
-      </div>
+    <div class="form-group">
+      <label>Replacements</label>
+      <input type="number" id="oReplacements" placeholder="0" min="0" value="0" oninput="updatePreview()" />
     </div>
     <div class="profit-preview" id="profitPreview" style="display:none">
       <span class="pp-label">Est. Net Profit</span>
@@ -352,9 +346,8 @@
   const COMMISSION_RATES = { '$1 SPANISH LEADS': 0.20, 'AGED SPANISH LEADS': 0.20 };
   const DEFAULT_COMMISSION_RATE = 0.10;
 
-  let currentDate      = localToday();
-  let dashData         = null;
-  let commissionEdited = false;
+  let currentDate = localToday();
+  let dashData    = null;
 
   function fmtDateDisplay(d) {
     const [y, m, day] = d.split('-');
@@ -465,7 +458,6 @@
 
   // ── Order modal ──
   function openOrderModal() {
-    commissionEdited = false;
     document.getElementById('orderModalTitle').textContent  = 'Add Order';
     document.getElementById('editOrderId').value            = '';
     document.getElementById('oDate').value                  = currentDate;
@@ -474,7 +466,6 @@
     document.getElementById('oQty').value                   = '';
     document.getElementById('oPrice').value                 = '';
     document.getElementById('oReplacements').value          = '0';
-    document.getElementById('oCommission').value            = '';
     document.getElementById('deleteOrderBtn').style.display = 'none';
     document.getElementById('orderErr').style.display       = 'none';
     document.getElementById('profitPreview').style.display  = 'none';
@@ -482,7 +473,6 @@
   }
 
   function openEditOrder(order) {
-    commissionEdited = true;
     document.getElementById('orderModalTitle').textContent  = 'Edit Order';
     document.getElementById('editOrderId').value            = order.id;
     document.getElementById('oDate').value                  = order.date;
@@ -491,7 +481,6 @@
     document.getElementById('oQty').value                   = order.quantity;
     document.getElementById('oPrice').value                 = order.pricePerLead;
     document.getElementById('oReplacements').value          = order.replacements;
-    document.getElementById('oCommission').value            = order.commission ?? '';
     document.getElementById('deleteOrderBtn').style.display = '';
     document.getElementById('orderErr').style.display       = 'none';
     updatePreview();
@@ -508,13 +497,8 @@
 
     if (!product || !qty || !price) { prev.style.display = 'none'; return; }
 
-    // Auto-fill commission using product-specific rate if user hasn't manually set it
-    const rate = COMMISSION_RATES[product] ?? DEFAULT_COMMISSION_RATE;
-    document.getElementById('commissionRateLabel').textContent = `— ${rate * 100}%`;
-    if (!commissionEdited) {
-      document.getElementById('oCommission').value = (price * qty * rate).toFixed(2);
-    }
-    const commission = parseFloat(document.getElementById('oCommission').value) || 0;
+    const rate       = COMMISSION_RATES[product] ?? DEFAULT_COMMISSION_RATE;
+    const commission = price * qty * rate;
 
     const cost = dashData?.costs?.[product] ?? null;
     if (cost == null) { prev.style.display = 'none'; return; }
@@ -537,7 +521,6 @@
       quantity:     document.getElementById('oQty').value,
       pricePerLead: document.getElementById('oPrice').value,
       replacements: document.getElementById('oReplacements').value || 0,
-      commission:   document.getElementById('oCommission').value || null,
     };
 
     if (!body.date || !body.product || !body.quantity || !body.pricePerLead) {
