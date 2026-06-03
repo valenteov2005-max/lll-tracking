@@ -9,6 +9,12 @@ const PORT = process.env.PORT || 3002;
 const ORDERS_FILE = path.join(__dirname, 'data', 'orders.json');
 const COSTS_FILE  = path.join(__dirname, 'data', 'daily-costs.json');
 
+const COMMISSION_RATES = {
+  '$1 SPANISH LEADS':   0.20,
+  'AGED SPANISH LEADS': 0.20,
+};
+const DEFAULT_COMMISSION_RATE = 0.10;
+
 const PRODUCTS = [
   'SPANISH IUL LEADS',
   'SPANISH FINAL EXPENSE LEADS',
@@ -120,7 +126,8 @@ app.post('/api/orders', (req, res) => {
 
   const qty        = parseInt(quantity);
   const price      = parseFloat(pricePerLead);
-  const defaultCom = parseFloat((price * qty * 0.10).toFixed(2));
+  const rate       = COMMISSION_RATES[String(product).trim()] ?? DEFAULT_COMMISSION_RATE;
+  const defaultCom = parseFloat((price * qty * rate).toFixed(2));
 
   const order = {
     id:           Date.now(),
