@@ -5,8 +5,6 @@ const path    = require('path');
 
 const app  = express();
 const PORT = process.env.PORT || 3002;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'lll2024';
-const ADMIN_TOKEN    = Buffer.from(ADMIN_PASSWORD).toString('base64');
 
 const ORDERS_FILE = path.join(__dirname, 'data', 'orders.json');
 const COSTS_FILE  = path.join(__dirname, 'data', 'daily-costs.json');
@@ -29,21 +27,6 @@ function calcProfit(order, costPerLead) {
   return (order.pricePerLead - costPerLead) * order.quantity - order.replacements * costPerLead;
 }
 
-function requireAdmin(req, res, next) {
-  const token = req.headers['x-admin-token'];
-  if (token && Buffer.from(token, 'base64').toString() === ADMIN_PASSWORD) return next();
-  res.status(401).json({ error: 'Unauthorized' });
-}
-
-// Admin login
-app.post('/api/admin/login', (req, res) => {
-  if ((req.body || {}).password === ADMIN_PASSWORD) {
-    res.json({ success: true, token: ADMIN_TOKEN });
-  } else {
-    res.status(401).json({ error: 'Wrong password' });
-  }
-});
-
 // Get daily cost
 app.get('/api/daily-cost', (req, res) => {
   const date  = req.query.date || new Date().toISOString().split('T')[0];
@@ -51,8 +34,8 @@ app.get('/api/daily-cost', (req, res) => {
   res.json({ date, costPerLead: costs[date] ?? null });
 });
 
-// Set daily cost (with date selector — date comes from body)
-app.post('/api/daily-cost', requireAdmin, (req, res) => {
+// Set daily cost
+app.post('/api/daily-cost', (req, res) => {
   const { date, costPerLead } = req.body || {};
   if (!date || costPerLead == null)
     return res.status(400).json({ error: 'date and costPerLead are required' });
@@ -62,7 +45,7 @@ app.post('/api/daily-cost', requireAdmin, (req, res) => {
   res.json({ success: true, date, costPerLead: costs[date] });
 });
 
-// Dashboard data for a given date
+// Dashboard data
 app.get('/api/dashboard', (req, res) => {
   const date        = req.query.date || new Date().toISOString().split('T')[0];
   const allOrders   = readJSON(ORDERS_FILE, []);
@@ -98,7 +81,7 @@ app.get('/api/dashboard', (req, res) => {
 });
 
 // Add order
-app.post('/api/orders', requireAdmin, (req, res) => {
+app.post('/api/orders', (req, res) => {
   const { date, product, clientName, quantity, pricePerLead, replacements } = req.body || {};
   if (!date || !product || !quantity || pricePerLead == null)
     return res.status(400).json({ error: 'date, product, quantity and pricePerLead are required' });
@@ -121,7 +104,7 @@ app.post('/api/orders', requireAdmin, (req, res) => {
 });
 
 // Edit order
-app.put('/api/orders/:id', requireAdmin, (req, res) => {
+app.put('/api/orders/:id', (req, res) => {
   const id     = parseInt(req.params.id);
   const orders = readJSON(ORDERS_FILE, []);
   const idx    = orders.findIndex(o => o.id === id);
@@ -131,7 +114,7 @@ app.put('/api/orders/:id', requireAdmin, (req, res) => {
   orders[idx] = {
     ...orders[idx],
     date:         b.date         ?? orders[idx].date,
-    product:      b.product      ? String(b.product).trim()    : orders[idx].product,
+    product:      b.product      ? String(b.product).trim()            : orders[idx].product,
     clientName:   b.clientName   != null ? String(b.clientName).trim() : orders[idx].clientName,
     quantity:     b.quantity     != null ? parseInt(b.quantity)        : orders[idx].quantity,
     pricePerLead: b.pricePerLead != null ? parseFloat(b.pricePerLead)  : orders[idx].pricePerLead,
@@ -142,7 +125,7 @@ app.put('/api/orders/:id', requireAdmin, (req, res) => {
 });
 
 // Delete order
-app.delete('/api/orders/:id', requireAdmin, (req, res) => {
+app.delete('/api/orders/:id', (req, res) => {
   const id     = parseInt(req.params.id);
   const orders = readJSON(ORDERS_FILE, []);
   const idx    = orders.findIndex(o => o.id === id);
