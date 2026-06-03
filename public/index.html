@@ -494,7 +494,6 @@
     document.getElementById('deliveryModalTitle').textContent = isEdit ? 'Edit Delivery' : 'Log Delivery';
     document.getElementById('deliveryModalSub').textContent   = `${order.clientName || 'Order'} — ${order.product} · ${fmtDate(currentDate)}`;
     document.getElementById('deliveryOrderId').value          = orderId;
-    document.getElementById('dDate').value                    = currentDate;
     document.getElementById('deliveryErr').style.display      = 'none';
     document.getElementById('deleteDeliveryBtn').style.display = isEdit ? '' : 'none';
 
