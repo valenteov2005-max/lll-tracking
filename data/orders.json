@@ -9,12 +9,22 @@
       "2026-06-02": {
         "leadsDelivered": 2,
         "costPerLead": 19.32
-      },
-      "2026-06-01": {
-        "leadsDelivered": 2,
-        "costPerLead": 19.32
       }
     },
     "createdAt": "2026-06-03T02:46:51.849Z"
+  },
+  {
+    "id": 1780456115416,
+    "clientName": "Daniel constante",
+    "product": "AGED SPANISH LEADS",
+    "quantity": 130,
+    "pricePerLead": 5,
+    "deliveries": {
+      "2026-06-01": {
+        "leadsDelivered": 130,
+        "costPerLead": 0
+      }
+    },
+    "createdAt": "2026-06-03T03:08:35.417Z"
   }
 ]
