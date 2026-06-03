@@ -292,7 +292,14 @@
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  let currentDate = new Date().toISOString().split('T')[0];
+  function localToday() {
+    const d = new Date();
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
+
+  let currentDate = localToday();
   let dashData    = null;
 
   function fmtDateDisplay(d) {
@@ -309,7 +316,7 @@
   }
 
   function goToday() {
-    currentDate = new Date().toISOString().split('T')[0];
+    currentDate = localToday();
     document.getElementById('datePickerInput').value = currentDate;
     load();
   }
