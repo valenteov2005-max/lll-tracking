@@ -391,7 +391,7 @@
         <td>${o.quantity} @ ${fmt(o.pricePerLead)}</td>
         <td>${progressHtml}</td>
         ${todayHtml}
-        <td><button class="row-btn" onclick="openEditOrder(${JSON.stringify(o).replace(/'/g,"&#39;")})">Edit</button></td>
+        <td><button class="row-btn" onclick="openEditOrder(${o.id})">Edit</button></td>
       </tr>`;
     }).join('');
 
@@ -431,7 +431,9 @@
     setTimeout(() => document.getElementById('oClient').focus(), 100);
   }
 
-  function openEditOrder(order) {
+  function openEditOrder(orderId) {
+    const order = dashData.orders.find(o => o.id === orderId);
+    if (!order) return;
     document.getElementById('orderModalTitle').textContent  = 'Edit Order';
     document.getElementById('editOrderId').value            = order.id;
     document.getElementById('oClient').value                = order.clientName || '';
