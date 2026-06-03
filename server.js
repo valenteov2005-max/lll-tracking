@@ -37,7 +37,7 @@ function writeJSON(file, data) {
 function calcProfit(order, costsForDate) {
   const cost = costsForDate?.[order.product];
   if (cost == null) return null;
-  return (order.pricePerLead - cost) * order.quantity - order.replacements * cost;
+  return (order.pricePerLead - cost) * order.quantity - order.replacements * cost - (order.commission || 0);
 }
 
 // Get costs for a date
@@ -114,18 +114,23 @@ app.get('/api/dashboard', (req, res) => {
 
 // Add order
 app.post('/api/orders', (req, res) => {
-  const { date, product, clientName, quantity, pricePerLead, replacements } = req.body || {};
+  const { date, product, clientName, quantity, pricePerLead, replacements, commission } = req.body || {};
   if (!date || !product || !quantity || pricePerLead == null)
     return res.status(400).json({ error: 'date, product, quantity and pricePerLead are required' });
+
+  const qty        = parseInt(quantity);
+  const price      = parseFloat(pricePerLead);
+  const defaultCom = parseFloat((price * qty * 0.10).toFixed(2));
 
   const order = {
     id:           Date.now(),
     date,
     product:      String(product).trim(),
     clientName:   String(clientName || '').trim(),
-    quantity:     parseInt(quantity),
-    pricePerLead: parseFloat(pricePerLead),
+    quantity:     qty,
+    pricePerLead: price,
     replacements: parseInt(replacements || 0),
+    commission:   commission != null ? parseFloat(commission) : defaultCom,
     createdAt:    new Date().toISOString(),
   };
 
@@ -151,6 +156,7 @@ app.put('/api/orders/:id', (req, res) => {
     quantity:     b.quantity     != null ? parseInt(b.quantity)        : orders[idx].quantity,
     pricePerLead: b.pricePerLead != null ? parseFloat(b.pricePerLead)  : orders[idx].pricePerLead,
     replacements: b.replacements != null ? parseInt(b.replacements)    : orders[idx].replacements,
+    commission:   b.commission   != null ? parseFloat(b.commission)    : orders[idx].commission,
   };
   writeJSON(ORDERS_FILE, orders);
   res.json({ success: true, order: orders[idx] });

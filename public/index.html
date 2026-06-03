@@ -254,9 +254,15 @@
         <input type="number" id="oPrice" placeholder="40.00" step="0.01" min="0" oninput="updatePreview()" />
       </div>
     </div>
-    <div class="form-group">
-      <label>Replacements</label>
-      <input type="number" id="oReplacements" placeholder="0" min="0" value="0" oninput="updatePreview()" />
+    <div class="row2">
+      <div class="form-group">
+        <label>Replacements</label>
+        <input type="number" id="oReplacements" placeholder="0" min="0" value="0" oninput="updatePreview()" />
+      </div>
+      <div class="form-group">
+        <label>Commission ($) <span style="color:#333">— default 10%</span></label>
+        <input type="number" id="oCommission" placeholder="0.00" step="0.01" min="0" oninput="commissionEdited=true;updatePreview()" />
+      </div>
     </div>
     <div class="profit-preview" id="profitPreview" style="display:none">
       <span class="pp-label">Est. Net Profit</span>
@@ -343,8 +349,9 @@
       String(d.getDate()).padStart(2, '0');
   }
 
-  let currentDate = localToday();
-  let dashData    = null;
+  let currentDate      = localToday();
+  let dashData         = null;
+  let commissionEdited = false;
 
   function fmtDateDisplay(d) {
     const [y, m, day] = d.split('-');
@@ -407,7 +414,7 @@
       wrap.innerHTML = `<table>
         <thead><tr>
           <th>Client</th><th>Product</th><th>Qty</th>
-          <th>Price/Lead</th><th>Cost/Lead</th><th>Replacements</th><th>Net Profit</th><th></th>
+          <th>Price/Lead</th><th>Cost/Lead</th><th>Replacements</th><th>Commission</th><th>Net Profit</th><th></th>
         </tr></thead>
         <tbody>
           ${d.orders.map(o => {
@@ -419,13 +426,14 @@
               <td>${fmt(o.pricePerLead)}</td>
               <td>${o.costPerLead != null ? fmt(o.costPerLead) : '<span style="color:#555">not set</span>'}</td>
               <td>${o.replacements}</td>
+              <td>${fmt(o.commission || 0)}</td>
               <td class="td-profit ${p != null ? cls(p) : ''}">${p != null ? fmtP(p) : '—'}</td>
               <td><button class="row-btn" onclick='openEditOrder(${JSON.stringify(o)})'>Edit</button></td>
             </tr>`;
           }).join('')}
           ${d.totalProfit != null ? `
           <tr class="total-row">
-            <td colspan="6" style="color:#555;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em">Total</td>
+            <td colspan="7" style="color:#555;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em">Total</td>
             <td class="td-profit ${cls(d.totalProfit)}">${fmtP(d.totalProfit)}</td>
             <td></td>
           </tr>` : ''}
@@ -454,6 +462,7 @@
 
   // ── Order modal ──
   function openOrderModal() {
+    commissionEdited = false;
     document.getElementById('orderModalTitle').textContent  = 'Add Order';
     document.getElementById('editOrderId').value            = '';
     document.getElementById('oDate').value                  = currentDate;
@@ -462,6 +471,7 @@
     document.getElementById('oQty').value                   = '';
     document.getElementById('oPrice').value                 = '';
     document.getElementById('oReplacements').value          = '0';
+    document.getElementById('oCommission').value            = '';
     document.getElementById('deleteOrderBtn').style.display = 'none';
     document.getElementById('orderErr').style.display       = 'none';
     document.getElementById('profitPreview').style.display  = 'none';
@@ -469,6 +479,7 @@
   }
 
   function openEditOrder(order) {
+    commissionEdited = true;
     document.getElementById('orderModalTitle').textContent  = 'Edit Order';
     document.getElementById('editOrderId').value            = order.id;
     document.getElementById('oDate').value                  = order.date;
@@ -477,6 +488,7 @@
     document.getElementById('oQty').value                   = order.quantity;
     document.getElementById('oPrice').value                 = order.pricePerLead;
     document.getElementById('oReplacements').value          = order.replacements;
+    document.getElementById('oCommission').value            = order.commission ?? '';
     document.getElementById('deleteOrderBtn').style.display = '';
     document.getElementById('orderErr').style.display       = 'none';
     updatePreview();
@@ -493,10 +505,16 @@
 
     if (!product || !qty || !price) { prev.style.display = 'none'; return; }
 
+    // Auto-fill commission at 10% if user hasn't manually set it
+    if (!commissionEdited) {
+      document.getElementById('oCommission').value = (price * qty * 0.10).toFixed(2);
+    }
+    const commission = parseFloat(document.getElementById('oCommission').value) || 0;
+
     const cost = dashData?.costs?.[product] ?? null;
     if (cost == null) { prev.style.display = 'none'; return; }
 
-    const profit      = (price - cost) * qty - reps * cost;
+    const profit      = (price - cost) * qty - reps * cost - commission;
     prev.style.display = 'flex';
     val.textContent   = fmtP(profit);
     val.style.color   = profit >= 0 ? '#fff' : '#f87171';
@@ -514,6 +532,7 @@
       quantity:     document.getElementById('oQty').value,
       pricePerLead: document.getElementById('oPrice').value,
       replacements: document.getElementById('oReplacements').value || 0,
+      commission:   document.getElementById('oCommission').value || null,
     };
 
     if (!body.date || !body.product || !body.quantity || !body.pricePerLead) {
