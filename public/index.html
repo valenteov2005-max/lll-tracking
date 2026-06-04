@@ -274,16 +274,10 @@
         <input type="number" id="dCost" placeholder="15.00" step="0.01" min="0" oninput="updateCalc()" />
       </div>
     </div>
-    <div class="form-group">
-      <label>Replacements Delivered Today <span style="color:#555">— counted as loss</span></label>
-      <input type="number" id="dReplacements" placeholder="0" min="0" value="0" oninput="updateCalc()" />
-    </div>
-
     <div class="calc-preview" id="calcPreview" style="display:none">
       <div class="calc-row"><span class="cl">Revenue</span><span class="cv" id="calcRevenue">—</span></div>
       <div class="calc-row"><span class="cl">Cost</span><span class="cv" id="calcCost">—</span></div>
       <div class="calc-row"><span class="cl">Commission</span><span class="cv" id="calcCommission">—</span></div>
-      <div class="calc-row" id="calcReplRow" style="display:none"><span class="cl" style="color:#f87171">Replacement Loss</span><span class="cv" style="color:#f87171" id="calcReplacementLoss">—</span></div>
       <div class="calc-row total" id="calcTotalRow"><span class="cl">Net Profit</span><span class="cv" id="calcProfit">—</span></div>
     </div>
 
@@ -292,6 +286,34 @@
       <button class="btn-del" id="deleteDeliveryBtn" style="display:none" onclick="deleteDelivery()">Remove</button>
       <button class="btn-cancel" onclick="closeModal('deliveryModal')">Cancel</button>
       <button class="btn-save"   onclick="saveDelivery()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Replacement Delivery Modal -->
+<div class="modal-overlay" id="replModal">
+  <div class="modal">
+    <h3>Fulfill Replacements</h3>
+    <div class="modal-sub" id="replModalSub"></div>
+    <input type="hidden" id="replOrderId" />
+    <div class="row2">
+      <div class="form-group">
+        <label>Count</label>
+        <input type="number" id="rCount" placeholder="2" min="1" oninput="updateReplCalc()" />
+      </div>
+      <div class="form-group">
+        <label>Cost Per Lead ($)</label>
+        <input type="number" id="rCost" placeholder="15.00" step="0.01" min="0" oninput="updateReplCalc()" />
+      </div>
+    </div>
+    <div class="calc-preview" id="replCalcPreview" style="display:none">
+      <div class="calc-row"><span class="cl" style="color:#f87171">Replacement Loss</span><span class="cv" style="color:#f87171" id="replCalcLoss">—</span></div>
+    </div>
+    <div class="modal-error" id="replErr"></div>
+    <div class="modal-actions">
+      <button class="btn-del" id="deleteReplBtn" style="display:none" onclick="deleteReplDelivery()">Remove</button>
+      <button class="btn-cancel" onclick="closeModal('replModal')">Cancel</button>
+      <button class="btn-save"   onclick="saveReplDelivery()">Save</button>
     </div>
   </div>
 </div>
@@ -386,14 +408,29 @@
 
       const todayHtml = del
         ? `<td class="section-start">${del.leadsDelivered}</td>
-           <td>${del.replacementsDelivered > 0 ? `<span style="color:#f87171">${del.replacementsDelivered}</span>` : '—'}</td>
            <td>${fmt(del.costPerLead)}</td>
            <td>${fmt(del.commission)}</td>
-           <td>${del.replacementLoss > 0 ? `<span style="color:#f87171">-${fmt(del.replacementLoss)}</span>` : '—'}</td>
            <td class="td-profit ${cls(del.netProfit)}">${fmtP(del.netProfit)}</td>
            <td><button class="row-btn" onclick="openDeliveryModal(${o.id}, true)">Edit</button></td>`
-        : `<td class="section-start not-logged" colspan="6">Not logged</td>
+        : `<td class="section-start not-logged" colspan="4">Not logged</td>
            <td><button class="row-btn log" onclick="openDeliveryModal(${o.id}, false)">+ Log</button></td>`;
+
+      const repl     = o.todayReplDelivery;
+      const replLeft = o.replacements - (o.totalReplFulfilled || 0);
+      const replHtml = o.replacements > 0
+        ? `<td class="section-start">
+             <span style="color:#aaa">${o.replacements} req · ${o.totalReplFulfilled || 0} done</span>
+           </td>
+           <td>${repl ? `<span style="color:#f87171">-${fmt(repl.loss)}</span>` : '—'}</td>
+           <td>
+             ${repl
+               ? `<button class="row-btn" onclick="openReplModal(${o.id}, true)">Edit</button>`
+               : replLeft > 0
+                 ? `<button class="row-btn log" onclick="openReplModal(${o.id}, false)">Fulfill</button>`
+                 : `<span style="color:#333;font-size:0.75rem">Done</span>`
+             }
+           </td>`
+        : `<td class="section-start" colspan="3" style="color:#333;font-size:0.78rem">—</td>`;
 
       return `<tr>
         <td><span class="status-pill ${done?'status-fulfilled':'status-active'}">${done?'Fulfilled':'Active'}</span></td>
@@ -402,6 +439,7 @@
         <td>${o.quantity} @ ${fmt(o.pricePerLead)}</td>
         <td>${progressHtml}</td>
         ${todayHtml}
+        ${replHtml}
         <td><button class="row-btn" onclick="openEditOrder(${o.id})">Edit</button></td>
       </tr>`;
     }).join('');
@@ -411,18 +449,20 @@
     const totalRow = withDel.length > 1 ? `
       <tr class="total-row">
         <td colspan="5" style="color:#555;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em">Daily Total</td>
-        <td class="section-start">${d.totalLeads}</td>
-        <td></td><td></td>
+        <td class="section-start">${d.totalLeads}</td><td></td>
         <td>${fmt(d.totalCommission)}</td>
-        <td></td>
         <td class="td-profit ${cls(d.totalNetProfit)}">${fmtP(d.totalNetProfit)}</td>
+        <td></td>
+        <td class="section-start"></td>
+        ${d.totalReplacementLoss > 0 ? `<td><span style="color:#f87171">-${fmt(d.totalReplacementLoss)}</span></td>` : '<td></td>'}
         <td></td><td></td>
       </tr>` : '';
 
     wrap.innerHTML = `<table>
       <thead><tr>
         <th>Status</th><th>Client</th><th>Product</th><th>Order</th><th>Progress</th>
-        <th class="section-start">Leads Today</th><th>Repls. Today</th><th>Cost/Lead</th><th>Commission</th><th>Repl. Loss</th><th>Net Profit</th><th></th>
+        <th class="section-start">Leads Today</th><th>Cost/Lead</th><th>Commission</th><th>Net Profit</th><th></th>
+        <th class="section-start">Replacements</th><th>Loss Today</th><th></th>
         <th></th>
       </tr></thead>
       <tbody>${todayRows}${totalRow}</tbody>
@@ -513,9 +553,8 @@
     document.getElementById('deleteDeliveryBtn').style.display = isEdit ? '' : 'none';
 
     const del = order.todayDelivery;
-    document.getElementById('dLeads').value        = del ? del.leadsDelivered        : '';
-    document.getElementById('dCost').value         = del ? del.costPerLead           : '';
-    document.getElementById('dReplacements').value = del ? (del.replacementsDelivered || 0) : 0;
+    document.getElementById('dLeads').value = del ? del.leadsDelivered : '';
+    document.getElementById('dCost').value  = del ? del.costPerLead   : '';
 
     updateCalc();
     openModal('deliveryModal');
@@ -526,27 +565,20 @@
     const order = deliveryOrder;
     const leads = parseFloat(document.getElementById('dLeads').value);
     const cost  = parseFloat(document.getElementById('dCost').value);
-    const repls = parseFloat(document.getElementById('dReplacements').value) || 0;
     const prev  = document.getElementById('calcPreview');
 
     if (!order || !leads || isNaN(cost)) { prev.style.display = 'none'; return; }
 
-    const rate            = COMMISSION_RATES[order.product] ?? DEFAULT_RATE;
-    const revenue         = order.pricePerLead * leads;
-    const costTotal       = cost * leads;
-    const commission      = revenue * rate;
-    const replacementLoss = cost * repls;
-    const profit          = revenue - costTotal - commission - replacementLoss;
+    const rate       = COMMISSION_RATES[order.product] ?? DEFAULT_RATE;
+    const revenue    = order.pricePerLead * leads;
+    const costTotal  = cost * leads;
+    const commission = revenue * rate;
+    const profit     = revenue - costTotal - commission;
 
     document.getElementById('calcRevenue').textContent    = fmt(revenue);
     document.getElementById('calcCost').textContent       = fmt(costTotal);
     document.getElementById('calcCommission').textContent = `${fmt(commission)} (${rate*100}%)`;
     document.getElementById('calcProfit').textContent     = fmtP(profit);
-
-    const replRow = document.getElementById('calcReplRow');
-    replRow.style.display = repls > 0 ? 'flex' : 'none';
-    document.getElementById('calcReplacementLoss').textContent = `-${fmt(replacementLoss)}`;
-
     document.getElementById('calcTotalRow').classList.toggle('neg', profit < 0);
     prev.style.display = 'flex';
   }
@@ -557,10 +589,9 @@
     errEl.style.display = 'none';
 
     const body = {
-      date:                 currentDate,
-      leadsDelivered:       document.getElementById('dLeads').value,
-      costPerLead:          document.getElementById('dCost').value,
-      replacementsDelivered: document.getElementById('dReplacements').value || 0,
+      date:           currentDate,
+      leadsDelivered: document.getElementById('dLeads').value,
+      costPerLead:    document.getElementById('dCost').value,
     };
 
     if (!body.leadsDelivered || !body.costPerLead) {
@@ -591,8 +622,61 @@
     load();
   }
 
+  // ── Replacement modal ──
+  let replOrder = null;
+
+  function openReplModal(orderId, isEdit) {
+    const order = dashData.orders.find(o => o.id === orderId);
+    if (!order) return;
+    replOrder = order;
+    const repl     = order.todayReplDelivery;
+    const replLeft = order.replacements - (order.totalReplFulfilled || 0);
+
+    document.getElementById('replOrderId').value  = orderId;
+    document.getElementById('replModalSub').textContent =
+      `${order.clientName || 'Order'} — ${order.product} · ${fmtDate(currentDate)}`;
+    document.getElementById('rCount').value = repl ? repl.count : Math.max(0, replLeft);
+    document.getElementById('rCost').value  = repl ? repl.costPerLead : '';
+    document.getElementById('replErr').style.display       = 'none';
+    document.getElementById('deleteReplBtn').style.display = isEdit ? '' : 'none';
+    updateReplCalc();
+    openModal('replModal');
+    setTimeout(() => document.getElementById('rCount').focus(), 100);
+  }
+
+  function updateReplCalc() {
+    const count = parseFloat(document.getElementById('rCount').value);
+    const cost  = parseFloat(document.getElementById('rCost').value);
+    const prev  = document.getElementById('replCalcPreview');
+    if (!count || isNaN(cost)) { prev.style.display = 'none'; return; }
+    document.getElementById('replCalcLoss').textContent = `-${fmt(count * cost)}`;
+    prev.style.display = 'flex';
+  }
+
+  async function saveReplDelivery() {
+    const id    = document.getElementById('replOrderId').value;
+    const errEl = document.getElementById('replErr');
+    errEl.style.display = 'none';
+    const body  = { date: currentDate, count: document.getElementById('rCount').value, costPerLead: document.getElementById('rCost').value };
+    if (!body.count || !body.costPerLead) {
+      errEl.textContent = 'Count and cost per lead are required'; errEl.style.display = 'block'; return;
+    }
+    const res = await fetch(`/api/orders/${id}/replacement-delivery`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+    if (res.ok) { closeModal('replModal'); load(); }
+    else { const d = await res.json(); errEl.textContent = d.error || 'Error'; errEl.style.display = 'block'; }
+  }
+
+  async function deleteReplDelivery() {
+    if (!confirm('Remove this replacement delivery entry?')) return;
+    const id = document.getElementById('replOrderId').value;
+    await fetch(`/api/orders/${id}/replacement-delivery/${currentDate}`, { method: 'DELETE' });
+    closeModal('replModal'); load();
+  }
+
   function openModal(id)  { document.getElementById(id).classList.add('open'); }
-  function closeModal(id) { document.getElementById(id).classList.remove('open'); deliveryOrder = null; }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); deliveryOrder = null; replOrder = null; }
 
   document.querySelectorAll('.modal-overlay').forEach(el => {
     el.addEventListener('click', function(e) { if (e.target === this) closeModal(this.id); });
