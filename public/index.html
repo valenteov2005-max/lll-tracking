@@ -245,6 +245,10 @@
         <input type="number" id="oPrice" placeholder="40.00" step="0.01" min="0" />
       </div>
     </div>
+    <div class="form-group">
+      <label>Replacements Requested <span style="color:#333">(total for this order)</span></label>
+      <input type="number" id="oReplacements" placeholder="0" min="0" value="0" />
+    </div>
     <div class="modal-error" id="orderErr"></div>
     <div class="modal-actions">
       <button class="btn-del" id="deleteOrderBtn" style="display:none" onclick="deleteOrder()">Delete</button>
@@ -270,11 +274,16 @@
         <input type="number" id="dCost" placeholder="15.00" step="0.01" min="0" oninput="updateCalc()" />
       </div>
     </div>
+    <div class="form-group">
+      <label>Replacements Delivered Today <span style="color:#555">— counted as loss</span></label>
+      <input type="number" id="dReplacements" placeholder="0" min="0" value="0" oninput="updateCalc()" />
+    </div>
 
     <div class="calc-preview" id="calcPreview" style="display:none">
       <div class="calc-row"><span class="cl">Revenue</span><span class="cv" id="calcRevenue">—</span></div>
       <div class="calc-row"><span class="cl">Cost</span><span class="cv" id="calcCost">—</span></div>
       <div class="calc-row"><span class="cl">Commission</span><span class="cv" id="calcCommission">—</span></div>
+      <div class="calc-row" id="calcReplRow" style="display:none"><span class="cl" style="color:#f87171">Replacement Loss</span><span class="cv" style="color:#f87171" id="calcReplacementLoss">—</span></div>
       <div class="calc-row total" id="calcTotalRow"><span class="cl">Net Profit</span><span class="cv" id="calcProfit">—</span></div>
     </div>
 
@@ -377,11 +386,13 @@
 
       const todayHtml = del
         ? `<td class="section-start">${del.leadsDelivered}</td>
+           <td>${del.replacementsDelivered > 0 ? `<span style="color:#f87171">${del.replacementsDelivered}</span>` : '—'}</td>
            <td>${fmt(del.costPerLead)}</td>
            <td>${fmt(del.commission)}</td>
+           <td>${del.replacementLoss > 0 ? `<span style="color:#f87171">-${fmt(del.replacementLoss)}</span>` : '—'}</td>
            <td class="td-profit ${cls(del.netProfit)}">${fmtP(del.netProfit)}</td>
            <td><button class="row-btn" onclick="openDeliveryModal(${o.id}, true)">Edit</button></td>`
-        : `<td class="section-start not-logged" colspan="4">Not logged</td>
+        : `<td class="section-start not-logged" colspan="6">Not logged</td>
            <td><button class="row-btn log" onclick="openDeliveryModal(${o.id}, false)">+ Log</button></td>`;
 
       return `<tr>
@@ -401,8 +412,9 @@
       <tr class="total-row">
         <td colspan="5" style="color:#555;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em">Daily Total</td>
         <td class="section-start">${d.totalLeads}</td>
-        <td></td>
+        <td></td><td></td>
         <td>${fmt(d.totalCommission)}</td>
+        <td></td>
         <td class="td-profit ${cls(d.totalNetProfit)}">${fmtP(d.totalNetProfit)}</td>
         <td></td><td></td>
       </tr>` : '';
@@ -410,7 +422,7 @@
     wrap.innerHTML = `<table>
       <thead><tr>
         <th>Status</th><th>Client</th><th>Product</th><th>Order</th><th>Progress</th>
-        <th class="section-start">Leads Today</th><th>Cost/Lead</th><th>Commission</th><th>Net Profit</th><th></th>
+        <th class="section-start">Leads Today</th><th>Repls. Today</th><th>Cost/Lead</th><th>Commission</th><th>Repl. Loss</th><th>Net Profit</th><th></th>
         <th></th>
       </tr></thead>
       <tbody>${todayRows}${totalRow}</tbody>
@@ -425,6 +437,7 @@
     document.getElementById('oProduct').value               = '';
     document.getElementById('oQty').value                   = '';
     document.getElementById('oPrice').value                 = '';
+    document.getElementById('oReplacements').value          = '0';
     document.getElementById('deleteOrderBtn').style.display = 'none';
     document.getElementById('orderErr').style.display       = 'none';
     openModal('orderModal');
@@ -440,6 +453,7 @@
     document.getElementById('oProduct').value               = order.product;
     document.getElementById('oQty').value                   = order.quantity;
     document.getElementById('oPrice').value                 = order.pricePerLead;
+    document.getElementById('oReplacements').value          = order.replacements || 0;
     document.getElementById('deleteOrderBtn').style.display = '';
     document.getElementById('orderErr').style.display       = 'none';
     openModal('orderModal');
@@ -455,6 +469,7 @@
       product:      document.getElementById('oProduct').value,
       quantity:     document.getElementById('oQty').value,
       pricePerLead: document.getElementById('oPrice').value,
+      replacements: document.getElementById('oReplacements').value || 0,
     };
 
     if (!body.product || !body.quantity || !body.pricePerLead) {
@@ -498,8 +513,9 @@
     document.getElementById('deleteDeliveryBtn').style.display = isEdit ? '' : 'none';
 
     const del = order.todayDelivery;
-    document.getElementById('dLeads').value = del ? del.leadsDelivered : '';
-    document.getElementById('dCost').value  = del ? del.costPerLead    : '';
+    document.getElementById('dLeads').value        = del ? del.leadsDelivered        : '';
+    document.getElementById('dCost').value         = del ? del.costPerLead           : '';
+    document.getElementById('dReplacements').value = del ? (del.replacementsDelivered || 0) : 0;
 
     updateCalc();
     openModal('deliveryModal');
@@ -507,27 +523,31 @@
   }
 
   function updateCalc() {
-    const order  = deliveryOrder;
-    const leads  = parseFloat(document.getElementById('dLeads').value);
-    const cost   = parseFloat(document.getElementById('dCost').value);
-    const prev   = document.getElementById('calcPreview');
+    const order = deliveryOrder;
+    const leads = parseFloat(document.getElementById('dLeads').value);
+    const cost  = parseFloat(document.getElementById('dCost').value);
+    const repls = parseFloat(document.getElementById('dReplacements').value) || 0;
+    const prev  = document.getElementById('calcPreview');
 
     if (!order || !leads || isNaN(cost)) { prev.style.display = 'none'; return; }
 
-    const rate       = COMMISSION_RATES[order.product] ?? DEFAULT_RATE;
-    const revenue    = order.pricePerLead * leads;
-    const costTotal  = cost * leads;
-    const commission = revenue * rate;
-    const profit     = revenue - costTotal - commission;
+    const rate            = COMMISSION_RATES[order.product] ?? DEFAULT_RATE;
+    const revenue         = order.pricePerLead * leads;
+    const costTotal       = cost * leads;
+    const commission      = revenue * rate;
+    const replacementLoss = cost * repls;
+    const profit          = revenue - costTotal - commission - replacementLoss;
 
     document.getElementById('calcRevenue').textContent    = fmt(revenue);
     document.getElementById('calcCost').textContent       = fmt(costTotal);
     document.getElementById('calcCommission').textContent = `${fmt(commission)} (${rate*100}%)`;
     document.getElementById('calcProfit').textContent     = fmtP(profit);
 
-    const totalRow = document.getElementById('calcTotalRow');
-    totalRow.classList.toggle('neg', profit < 0);
+    const replRow = document.getElementById('calcReplRow');
+    replRow.style.display = repls > 0 ? 'flex' : 'none';
+    document.getElementById('calcReplacementLoss').textContent = `-${fmt(replacementLoss)}`;
 
+    document.getElementById('calcTotalRow').classList.toggle('neg', profit < 0);
     prev.style.display = 'flex';
   }
 
@@ -537,9 +557,10 @@
     errEl.style.display = 'none';
 
     const body = {
-      date:           currentDate,
-      leadsDelivered: document.getElementById('dLeads').value,
-      costPerLead:    document.getElementById('dCost').value,
+      date:                 currentDate,
+      leadsDelivered:       document.getElementById('dLeads').value,
+      costPerLead:          document.getElementById('dCost').value,
+      replacementsDelivered: document.getElementById('dReplacements').value || 0,
     };
 
     if (!body.leadsDelivered || !body.costPerLead) {

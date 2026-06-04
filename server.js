@@ -114,20 +114,25 @@ async function updateDeliveries(id, deliveries) {
 // ── Business logic ────────────────────────────────────────────────────────────
 
 function calcDelivery(order, delivery) {
-  const rate       = COMMISSION_RATES[order.product] ?? DEFAULT_COMMISSION_RATE;
-  const revenue    = order.pricePerLead * delivery.leadsDelivered;
-  const cost       = delivery.costPerLead * delivery.leadsDelivered;
-  const commission = revenue * rate;
-  return { ...delivery, commission, netProfit: revenue - cost - commission };
+  const rate               = COMMISSION_RATES[order.product] ?? DEFAULT_COMMISSION_RATE;
+  const revenue            = order.pricePerLead * delivery.leadsDelivered;
+  const costNormal         = delivery.costPerLead * delivery.leadsDelivered;
+  const replacementsDelivered = delivery.replacementsDelivered || 0;
+  const replacementLoss    = delivery.costPerLead * replacementsDelivered;
+  const commission         = revenue * rate;
+  const netProfit          = revenue - costNormal - replacementLoss - commission;
+  return { ...delivery, replacementsDelivered, commission, replacementLoss, netProfit };
 }
 
 function enrichOrder(order, date) {
-  const deliveries     = order.deliveries || {};
-  const totalDelivered = Object.values(deliveries).reduce((s, d) => s + d.leadsDelivered, 0);
-  const todayRaw       = deliveries[date] || null;
+  const deliveries          = order.deliveries || {};
+  const totalDelivered      = Object.values(deliveries).reduce((s, d) => s + d.leadsDelivered, 0);
+  const totalReplacementsDel = Object.values(deliveries).reduce((s, d) => s + (d.replacementsDelivered || 0), 0);
+  const todayRaw            = deliveries[date] || null;
   return {
     ...order,
     totalDelivered,
+    totalReplacementsDelivered: totalReplacementsDel,
     remaining:     Math.max(0, order.quantity - totalDelivered),
     fulfilled:     totalDelivered >= order.quantity,
     todayDelivery: todayRaw ? calcDelivery(order, todayRaw) : null,
@@ -156,12 +161,14 @@ app.post('/api/orders', async (req, res) => {
   if (!product || !quantity || pricePerLead == null)
     return res.status(400).json({ error: 'product, quantity and pricePerLead are required' });
 
+  const { replacements } = req.body || {};
   const order = {
     id:           Date.now(),
     clientName:   String(clientName || '').trim(),
     product:      String(product).trim(),
     quantity:     parseInt(quantity),
     pricePerLead: parseFloat(pricePerLead),
+    replacements: parseInt(replacements || 0),
     deliveries:   {},
     createdAt:    new Date().toISOString(),
   };
@@ -180,6 +187,7 @@ app.put('/api/orders/:id', async (req, res) => {
   if (b.product)               order.product      = String(b.product).trim();
   if (b.quantity     != null) order.quantity      = parseInt(b.quantity);
   if (b.pricePerLead != null) order.pricePerLead  = parseFloat(b.pricePerLead);
+  if (b.replacements != null) order.replacements  = parseInt(b.replacements);
   await upsertOrder(order);
   res.json({ success: true, order });
 });
@@ -195,12 +203,16 @@ app.post('/api/orders/:id/delivery', async (req, res) => {
   const order  = orders.find(o => o.id === id);
   if (!order) return res.status(404).json({ error: 'Not found' });
 
-  const { date, leadsDelivered, costPerLead } = req.body || {};
+  const { date, leadsDelivered, costPerLead, replacementsDelivered } = req.body || {};
   if (!date || leadsDelivered == null || costPerLead == null)
     return res.status(400).json({ error: 'date, leadsDelivered and costPerLead are required' });
 
   if (!order.deliveries) order.deliveries = {};
-  order.deliveries[date] = { leadsDelivered: parseInt(leadsDelivered), costPerLead: parseFloat(costPerLead) };
+  order.deliveries[date] = {
+    leadsDelivered:       parseInt(leadsDelivered),
+    costPerLead:          parseFloat(costPerLead),
+    replacementsDelivered: parseInt(replacementsDelivered || 0),
+  };
   await updateDeliveries(id, order.deliveries);
   res.json({ success: true, order: enrichOrder(order, date) });
 });
