@@ -28,34 +28,30 @@ async function initDB() {
   if (!USE_DB) return;
   await pool.query(`
     CREATE TABLE IF NOT EXISTS orders (
-      id                     BIGINT PRIMARY KEY,
-      client_name            TEXT    DEFAULT '',
-      product                TEXT    NOT NULL,
-      quantity               INTEGER NOT NULL,
-      price_per_lead         DECIMAL NOT NULL,
-      replacements           INTEGER DEFAULT 0,
-      deliveries             JSONB   DEFAULT '{}',
-      replacement_deliveries JSONB   DEFAULT '{}',
-      created_at             TIMESTAMPTZ DEFAULT NOW()
+      id            BIGINT  PRIMARY KEY,
+      client_name   TEXT    DEFAULT '',
+      product       TEXT    NOT NULL,
+      quantity      INTEGER NOT NULL,
+      price_per_lead DECIMAL NOT NULL,
+      replacements  INTEGER DEFAULT 0,
+      deliveries    JSONB   DEFAULT '{}',
+      created_at    TIMESTAMPTZ DEFAULT NOW()
     )
   `);
-  // Handle existing tables that predate these columns
-  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS replacements           INTEGER DEFAULT 0`);
-  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS replacement_deliveries JSONB   DEFAULT '{}'`);
+  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS replacements INTEGER DEFAULT 0`);
   console.log('PostgreSQL ready');
 }
 
 function rowToOrder(r) {
   return {
-    id:                    Number(r.id),
-    clientName:            r.client_name || '',
-    product:               r.product,
-    quantity:              Number(r.quantity),
-    pricePerLead:          parseFloat(r.price_per_lead),
-    replacements:          Number(r.replacements || 0),
-    deliveries:            r.deliveries             || {},
-    replacementDeliveries: r.replacement_deliveries || {},
-    createdAt:             r.created_at,
+    id:           Number(r.id),
+    clientName:   r.client_name || '',
+    product:      r.product,
+    quantity:     Number(r.quantity),
+    pricePerLead: parseFloat(r.price_per_lead),
+    replacements: Number(r.replacements || 0),
+    deliveries:   r.deliveries || {},
+    createdAt:    r.created_at,
   };
 }
 
@@ -80,24 +76,17 @@ async function getAllOrders() {
 async function upsertOrder(order) {
   if (USE_DB) {
     await pool.query(`
-      INSERT INTO orders
-        (id, client_name, product, quantity, price_per_lead, replacements, deliveries, replacement_deliveries, created_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9)
+      INSERT INTO orders (id, client_name, product, quantity, price_per_lead, replacements, deliveries, created_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8)
       ON CONFLICT (id) DO UPDATE SET
-        client_name            = EXCLUDED.client_name,
-        product                = EXCLUDED.product,
-        quantity               = EXCLUDED.quantity,
-        price_per_lead         = EXCLUDED.price_per_lead,
-        replacements           = EXCLUDED.replacements,
-        deliveries             = EXCLUDED.deliveries,
-        replacement_deliveries = EXCLUDED.replacement_deliveries
-    `, [
-      order.id, order.clientName, order.product, order.quantity, order.pricePerLead,
-      order.replacements || 0,
-      JSON.stringify(order.deliveries || {}),
-      JSON.stringify(order.replacementDeliveries || {}),
-      order.createdAt,
-    ]);
+        client_name    = EXCLUDED.client_name,
+        product        = EXCLUDED.product,
+        quantity       = EXCLUDED.quantity,
+        price_per_lead = EXCLUDED.price_per_lead,
+        replacements   = EXCLUDED.replacements,
+        deliveries     = EXCLUDED.deliveries
+    `, [order.id, order.clientName, order.product, order.quantity, order.pricePerLead,
+        order.replacements || 0, JSON.stringify(order.deliveries || {}), order.createdAt]);
   } else {
     const orders = readJSON(ORDERS_FILE, []);
     const idx    = orders.findIndex(o => o.id === order.id);
@@ -125,45 +114,59 @@ async function updateDeliveries(id, deliveries) {
   }
 }
 
-async function updateReplacementDeliveries(id, replacementDeliveries) {
-  if (USE_DB) {
-    await pool.query('UPDATE orders SET replacement_deliveries = $1::jsonb WHERE id = $2', [JSON.stringify(replacementDeliveries), id]);
-  } else {
-    const orders = readJSON(ORDERS_FILE, []);
-    const idx    = orders.findIndex(o => o.id === id);
-    if (idx >= 0) { orders[idx].replacementDeliveries = replacementDeliveries; writeJSON(ORDERS_FILE, orders); }
-  }
-}
-
 // ── Business logic ────────────────────────────────────────────────────────────
 
-function calcDelivery(order, delivery) {
-  const rate       = COMMISSION_RATES[order.product] ?? DEFAULT_COMMISSION_RATE;
-  const revenue    = order.pricePerLead * delivery.leadsDelivered;
-  const cost       = delivery.costPerLead * delivery.leadsDelivered;
-  const commission = revenue * rate;
-  return { ...delivery, commission, netProfit: revenue - cost - commission };
+// prevTotal = cumulative leads delivered across all dates BEFORE this one
+function calcDelivery(order, delivery, prevTotal) {
+  const rate = COMMISSION_RATES[order.product] ?? DEFAULT_COMMISSION_RATE;
+  const qty  = order.quantity;
+  const repl = order.replacements || 0;
+  const leads = delivery.leadsDelivered;
+
+  // Split today's leads into paid vs replacement
+  const todayPaid = Math.max(0, Math.min(leads, qty - prevTotal));
+  const prevRepl  = Math.max(0, prevTotal - qty);
+  const todayRepl = Math.max(0, Math.min(leads - todayPaid, repl - prevRepl));
+
+  const revenue         = order.pricePerLead * todayPaid;
+  const costTotal       = delivery.costPerLead * (todayPaid + todayRepl);
+  const commission      = revenue * rate;
+  const replacementLoss = delivery.costPerLead * todayRepl;
+
+  return {
+    ...delivery,
+    todayPaid,
+    todayRepl,
+    revenue,
+    commission,
+    replacementLoss,
+    netProfit: revenue - costTotal - commission,
+  };
 }
 
 function enrichOrder(order, date) {
-  const deliveries             = order.deliveries             || {};
-  const replacementDeliveries  = order.replacementDeliveries  || {};
+  const deliveries  = order.deliveries || {};
+  const sortedDates = Object.keys(deliveries).sort();
 
-  const totalDelivered         = Object.values(deliveries).reduce((s, d) => s + d.leadsDelivered, 0);
-  const totalReplFulfilled     = Object.values(replacementDeliveries).reduce((s, d) => s + d.count, 0);
+  let prevTotal     = 0;
+  let todayDelivery = null;
 
-  const todayRaw               = deliveries[date]            || null;
-  const todayRepl              = replacementDeliveries[date] || null;
-  const todayReplacementLoss   = todayRepl ? todayRepl.count * todayRepl.costPerLead : 0;
+  for (const d of sortedDates) {
+    if (d === date) {
+      todayDelivery = calcDelivery(order, deliveries[d], prevTotal);
+    }
+    prevTotal += deliveries[d].leadsDelivered;
+  }
+
+  const totalExpected = order.quantity + (order.replacements || 0);
 
   return {
     ...order,
-    totalDelivered,
-    totalReplFulfilled,
-    remaining:            Math.max(0, order.quantity - totalDelivered),
-    fulfilled:            totalDelivered >= order.quantity,
-    todayDelivery:        todayRaw  ? calcDelivery(order, todayRaw) : null,
-    todayReplDelivery:    todayRepl ? { ...todayRepl, loss: todayReplacementLoss } : null,
+    totalDelivered: prevTotal,
+    totalExpected,
+    remaining:  Math.max(0, totalExpected - prevTotal),
+    fulfilled:  prevTotal >= totalExpected,
+    todayDelivery,
   };
 }
 
@@ -173,45 +176,37 @@ app.get('/api/dashboard', async (req, res) => {
   const date   = req.query.date || new Date().toISOString().split('T')[0];
   const orders = (await getAllOrders()).map(o => enrichOrder(o, date));
 
-  const withDel  = orders.filter(o => o.todayDelivery);
-  const withRepl = orders.filter(o => o.todayReplDelivery);
-
-  const totalDeliveryProfit  = withDel.reduce((s, o) => s + o.todayDelivery.netProfit, 0);
-  const totalReplacementLoss = withRepl.reduce((s, o) => s + o.todayReplDelivery.loss, 0);
-
+  const withDel = orders.filter(o => o.todayDelivery);
   res.json({
     date,
-    totalNetProfit:      totalDeliveryProfit - totalReplacementLoss,
-    totalRevenue:        withDel.reduce((s, o) => s + o.todayDelivery.leadsDelivered * o.pricePerLead, 0),
+    totalNetProfit:      withDel.reduce((s, o) => s + o.todayDelivery.netProfit, 0),
+    totalRevenue:        withDel.reduce((s, o) => s + o.todayDelivery.revenue, 0),
     totalCommission:     withDel.reduce((s, o) => s + o.todayDelivery.commission, 0),
     totalLeads:          withDel.reduce((s, o) => s + o.todayDelivery.leadsDelivered, 0),
-    totalReplacementLoss,
+    totalReplacementLoss:withDel.reduce((s, o) => s + o.todayDelivery.replacementLoss, 0),
     orders,
   });
 });
 
-// Create order
 app.post('/api/orders', async (req, res) => {
   const { clientName, product, quantity, pricePerLead, replacements } = req.body || {};
   if (!product || !quantity || pricePerLead == null)
     return res.status(400).json({ error: 'product, quantity and pricePerLead are required' });
 
   const order = {
-    id:                   Date.now(),
-    clientName:           String(clientName || '').trim(),
-    product:              String(product).trim(),
-    quantity:             parseInt(quantity),
-    pricePerLead:         parseFloat(pricePerLead),
-    replacements:         parseInt(replacements || 0),
-    deliveries:           {},
-    replacementDeliveries:{},
-    createdAt:            new Date().toISOString(),
+    id:           Date.now(),
+    clientName:   String(clientName || '').trim(),
+    product:      String(product).trim(),
+    quantity:     parseInt(quantity),
+    pricePerLead: parseFloat(pricePerLead),
+    replacements: parseInt(replacements || 0),
+    deliveries:   {},
+    createdAt:    new Date().toISOString(),
   };
   await upsertOrder(order);
   res.json({ success: true, order });
 });
 
-// Edit order
 app.put('/api/orders/:id', async (req, res) => {
   const id     = parseInt(req.params.id);
   const orders = await getAllOrders();
@@ -228,13 +223,11 @@ app.put('/api/orders/:id', async (req, res) => {
   res.json({ success: true, order });
 });
 
-// Delete order
 app.delete('/api/orders/:id', async (req, res) => {
   await deleteOrderById(parseInt(req.params.id));
   res.json({ success: true });
 });
 
-// Log regular delivery
 app.post('/api/orders/:id/delivery', async (req, res) => {
   const id     = parseInt(req.params.id);
   const orders = await getAllOrders();
@@ -251,7 +244,6 @@ app.post('/api/orders/:id/delivery', async (req, res) => {
   res.json({ success: true, order: enrichOrder(order, date) });
 });
 
-// Delete regular delivery
 app.delete('/api/orders/:id/delivery/:date', async (req, res) => {
   const id     = parseInt(req.params.id);
   const orders = await getAllOrders();
@@ -262,39 +254,6 @@ app.delete('/api/orders/:id/delivery/:date', async (req, res) => {
   res.json({ success: true });
 });
 
-// Log replacement delivery (pure loss)
-app.post('/api/orders/:id/replacement-delivery', async (req, res) => {
-  const id     = parseInt(req.params.id);
-  const orders = await getAllOrders();
-  const order  = orders.find(o => o.id === id);
-  if (!order) return res.status(404).json({ error: 'Not found' });
-
-  const { date, count, costPerLead } = req.body || {};
-  if (!date || count == null || costPerLead == null)
-    return res.status(400).json({ error: 'date, count and costPerLead are required' });
-
-  if (!order.replacementDeliveries) order.replacementDeliveries = {};
-  order.replacementDeliveries[date] = { count: parseInt(count), costPerLead: parseFloat(costPerLead) };
-  await updateReplacementDeliveries(id, order.replacementDeliveries);
-  res.json({ success: true, order: enrichOrder(order, date) });
-});
-
-// Delete replacement delivery
-app.delete('/api/orders/:id/replacement-delivery/:date', async (req, res) => {
-  const id     = parseInt(req.params.id);
-  const orders = await getAllOrders();
-  const order  = orders.find(o => o.id === id);
-  if (!order) return res.status(404).json({ error: 'Not found' });
-  delete (order.replacementDeliveries || {})[req.params.date];
-  await updateReplacementDeliveries(id, order.replacementDeliveries || {});
-  res.json({ success: true });
-});
-
-// ── Start ─────────────────────────────────────────────────────────────────────
-
 initDB().then(() => {
   app.listen(PORT, () => console.log(`LLL Tracking: http://localhost:${PORT}`));
-}).catch(err => {
-  console.error('DB init failed:', err.message);
-  process.exit(1);
-});
+}).catch(err => { console.error('DB init failed:', err.message); process.exit(1); });
