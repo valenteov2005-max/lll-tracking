@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 3002;
 
 const COMMISSION_RATES = { '$1 SPANISH LEADS': 0.20, 'AGED SPANISH LEADS': 0.20 };
 const DEFAULT_COMMISSION_RATE = 0.10;
+const COMMISSION_CUTOFF = '2026-06-21'; // from this date: 15% of gross profit instead of 10% of revenue
 const ORDERS_FILE = path.join(__dirname, 'data', 'orders.json');
 
 app.use(cors());
@@ -117,8 +118,7 @@ async function updateDeliveries(id, deliveries) {
 // ── Business logic ────────────────────────────────────────────────────────────
 
 // prevTotal = cumulative leads delivered across all dates BEFORE this one
-function calcDelivery(order, delivery, prevTotal) {
-  const rate = COMMISSION_RATES[order.product] ?? DEFAULT_COMMISSION_RATE;
+function calcDelivery(order, delivery, prevTotal, date) {
   const qty  = order.quantity;
   const repl = order.replacements || 0;
   const leads = delivery.leadsDelivered;
@@ -130,8 +130,20 @@ function calcDelivery(order, delivery, prevTotal) {
 
   const revenue         = order.pricePerLead * todayPaid;
   const costTotal       = delivery.costPerLead * (todayPaid + todayRepl);
-  const commission      = revenue * rate;
   const replacementLoss = delivery.costPerLead * todayRepl;
+
+  let commission;
+  const fixedRate = COMMISSION_RATES[order.product];
+  if (fixedRate != null) {
+    // $1 SPANISH LEADS / AGED SPANISH LEADS: always 20% of revenue
+    commission = revenue * fixedRate;
+  } else if (date >= COMMISSION_CUTOFF) {
+    // From June 21: 15% of gross profit (revenue - cost of all leads delivered today)
+    commission = Math.max(0, (revenue - costTotal) * 0.15);
+  } else {
+    // Before June 21: 10% of revenue
+    commission = revenue * DEFAULT_COMMISSION_RATE;
+  }
 
   return {
     ...delivery,
@@ -153,7 +165,7 @@ function enrichOrder(order, date) {
 
   for (const d of sortedDates) {
     if (d === date) {
-      todayDelivery = calcDelivery(order, deliveries[d], prevTotal);
+      todayDelivery = calcDelivery(order, deliveries[d], prevTotal, date);
     }
     prevTotal += deliveries[d].leadsDelivered;
   }
