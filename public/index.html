@@ -533,9 +533,10 @@
 
     if (!order || !leads || isNaN(cost)) { prev.style.display = 'none'; return; }
 
-    // prevTotal = total delivered before today (excluding any existing today entry)
-    const todayExisting = order.todayDelivery ? order.todayDelivery.leadsDelivered : 0;
-    const prevTotal     = (order.totalDelivered || 0) - todayExisting;
+    // prevTotal = leads delivered on all dates strictly before the viewed date
+    const prevTotal = order.deliveredBefore !== undefined
+      ? order.deliveredBefore
+      : (order.totalDelivered || 0) - (order.todayDelivery ? order.todayDelivery.leadsDelivered : 0);
 
     const qty  = order.quantity;
     const repl = order.replacements || 0;

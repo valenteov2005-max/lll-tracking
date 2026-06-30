@@ -160,12 +160,14 @@ function enrichOrder(order, date) {
   const deliveries  = order.deliveries || {};
   const sortedDates = Object.keys(deliveries).sort();
 
-  let prevTotal     = 0;
-  let todayDelivery = null;
+  let prevTotal       = 0;
+  let deliveredBefore = 0;
+  let todayDelivery   = null;
 
   for (const d of sortedDates) {
     if (d === date) {
-      todayDelivery = calcDelivery(order, deliveries[d], prevTotal, date);
+      deliveredBefore = prevTotal;
+      todayDelivery   = calcDelivery(order, deliveries[d], prevTotal, date);
     }
     prevTotal += deliveries[d].leadsDelivered;
   }
@@ -174,7 +176,8 @@ function enrichOrder(order, date) {
 
   return {
     ...order,
-    totalDelivered: prevTotal,
+    totalDelivered:  prevTotal,
+    deliveredBefore,
     totalExpected,
     remaining:  Math.max(0, totalExpected - prevTotal),
     fulfilled:  prevTotal >= totalExpected,
