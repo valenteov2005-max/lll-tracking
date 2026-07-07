@@ -186,8 +186,12 @@
       <div class="value sm" id="statRevenue">—</div>
     </div>
     <div class="stat-card">
-      <div class="label">Commission Paid</div>
+      <div class="label">Salesman Comm.</div>
       <div class="value sm" id="statCommission">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Media Buyer Comm.</div>
+      <div class="value sm" id="statMediaBuyer">—</div>
     </div>
     <div class="stat-card">
       <div class="label">Leads Delivered</div>
@@ -279,7 +283,8 @@
     <div class="calc-preview" id="calcPreview" style="display:none">
       <div class="calc-row"><span class="cl">Revenue</span><span class="cv" id="calcRevenue">—</span></div>
       <div class="calc-row"><span class="cl">Cost</span><span class="cv" id="calcCost">—</span></div>
-      <div class="calc-row"><span class="cl">Commission</span><span class="cv" id="calcCommission">—</span></div>
+      <div class="calc-row"><span class="cl">Salesman Comm.</span><span class="cv" id="calcCommission">—</span></div>
+      <div class="calc-row" id="calcMediaBuyerRow" style="display:none"><span class="cl">Media Buyer Comm.</span><span class="cv" id="calcMediaBuyer">—</span></div>
       <div class="calc-row" id="calcReplRow" style="display:none">
         <span class="cl" style="color:#f87171">Replacement Loss (<span id="calcReplCount"></span> leads)</span>
         <span class="cv" style="color:#f87171" id="calcReplLoss">—</span>
@@ -301,6 +306,7 @@
   const COMMISSION_RATES   = { '$1 SPANISH LEADS': 0.20, 'AGED SPANISH LEADS': 0.20 };
   const DEFAULT_RATE       = 0.10;
   const COMMISSION_CUTOFF  = '2026-06-21';
+  const MEDIA_BUYER_CUTOFF = '2026-07-01';
 
   const fmt  = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtP = n => (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -362,7 +368,8 @@
     profitEl.className   = 'value' + (p < 0 ? ' neg' : '');
 
     document.getElementById('statRevenue').textContent    = fmt(d.totalRevenue);
-    document.getElementById('statCommission').textContent = fmt(d.totalCommission);
+    document.getElementById('statCommission').textContent  = fmt(d.totalCommission);
+    document.getElementById('statMediaBuyer').textContent  = fmt(d.totalMediaBuyerCommission || 0);
     document.getElementById('statLeads').textContent      = d.totalLeads;
     document.getElementById('statActive').textContent     = d.orders.filter(o => !o.fulfilled).length;
 
@@ -390,10 +397,11 @@
         ? `<td class="section-start">${del.leadsDelivered}</td>
            <td>${fmt(del.costPerLead)}</td>
            <td>${fmt(del.commission)}</td>
+           <td>${del.mediaBuyerCommission > 0 ? fmt(del.mediaBuyerCommission) : '—'}</td>
            <td>${del.replacementLoss > 0 ? `<span style="color:#f87171">-${fmt(del.replacementLoss)}</span>` : '—'}</td>
            <td class="td-profit ${cls(del.netProfit)}">${fmtP(del.netProfit)}</td>
            <td><button class="row-btn" onclick="openDeliveryModal(${o.id}, true)">Edit</button></td>`
-        : `<td class="section-start not-logged" colspan="5">Not logged</td>
+        : `<td class="section-start not-logged" colspan="6">Not logged</td>
            <td><button class="row-btn log" onclick="openDeliveryModal(${o.id}, false)">+ Log</button></td>`;
 
       const orderLabel = o.replacements > 0
@@ -418,6 +426,7 @@
         <td colspan="5" style="color:#555;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em">Daily Total</td>
         <td class="section-start">${d.totalLeads}</td><td></td>
         <td>${fmt(d.totalCommission)}</td>
+        <td>${d.totalMediaBuyerCommission > 0 ? fmt(d.totalMediaBuyerCommission) : '—'}</td>
         ${d.totalReplacementLoss > 0 ? `<td><span style="color:#f87171">-${fmt(d.totalReplacementLoss)}</span></td>` : '<td></td>'}
         <td class="td-profit ${cls(d.totalNetProfit)}">${fmtP(d.totalNetProfit)}</td>
         <td></td><td></td>
@@ -426,7 +435,7 @@
     wrap.innerHTML = `<table>
       <thead><tr>
         <th>Status</th><th>Client</th><th>Product</th><th>Order</th><th>Progress</th>
-        <th class="section-start">Leads Today</th><th>Cost/Lead</th><th>Commission</th><th>Repl. Loss</th><th>Net Profit</th><th></th>
+        <th class="section-start">Leads Today</th><th>Cost/Lead</th><th>Salesman</th><th>Media Buyer</th><th>Repl. Loss</th><th>Net Profit</th><th></th>
         <th></th>
       </tr></thead>
       <tbody>${todayRows}${totalRow}</tbody>
@@ -562,11 +571,28 @@
       commLabel  = `${fmt(commission)} (10% of revenue)`;
     }
 
-    const profit = revenue - costTotal - commission;
+    // Media buyer: same rates as salesman, from July 1
+    let mediaBuyerCommission = 0;
+    if (currentDate >= MEDIA_BUYER_CUTOFF) {
+      mediaBuyerCommission = fixedRate != null
+        ? revenue * fixedRate
+        : Math.max(0, (revenue - costTotal) * 0.15);
+    }
+
+    const profit = revenue - costTotal - commission - mediaBuyerCommission;
 
     document.getElementById('calcRevenue').textContent    = fmt(revenue);
     document.getElementById('calcCost').textContent       = fmt(costTotal);
     document.getElementById('calcCommission').textContent = commLabel;
+
+    const mbRow = document.getElementById('calcMediaBuyerRow');
+    if (mediaBuyerCommission > 0) {
+      document.getElementById('calcMediaBuyer').textContent = fmt(mediaBuyerCommission);
+      mbRow.style.display = 'flex';
+    } else {
+      mbRow.style.display = 'none';
+    }
+
     document.getElementById('calcProfit').textContent     = fmtP(profit);
     document.getElementById('calcTotalRow').classList.toggle('neg', profit < 0);
 

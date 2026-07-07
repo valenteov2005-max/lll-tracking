@@ -8,7 +8,8 @@ const PORT = process.env.PORT || 3002;
 
 const COMMISSION_RATES = { '$1 SPANISH LEADS': 0.20, 'AGED SPANISH LEADS': 0.20 };
 const DEFAULT_COMMISSION_RATE = 0.10;
-const COMMISSION_CUTOFF = '2026-06-21'; // from this date: 15% of gross profit instead of 10% of revenue
+const COMMISSION_CUTOFF    = '2026-06-21'; // from this date: 15% of gross profit instead of 10% of revenue
+const MEDIA_BUYER_CUTOFF   = '2026-07-01'; // from this date: media buyer gets same commission as salesman
 const ORDERS_FILE = path.join(__dirname, 'data', 'orders.json');
 
 app.use(cors());
@@ -132,17 +133,24 @@ function calcDelivery(order, delivery, prevTotal, date) {
   const costTotal       = delivery.costPerLead * (todayPaid + todayRepl);
   const replacementLoss = delivery.costPerLead * todayRepl;
 
-  let commission;
   const fixedRate = COMMISSION_RATES[order.product];
+
+  // Salesman commission
+  let commission;
   if (fixedRate != null) {
-    // $1 SPANISH LEADS / AGED SPANISH LEADS: always 20% of revenue
     commission = revenue * fixedRate;
   } else if (date >= COMMISSION_CUTOFF) {
-    // From June 21: 15% of gross profit (revenue - cost of all leads delivered today)
     commission = Math.max(0, (revenue - costTotal) * 0.15);
   } else {
-    // Before June 21: 10% of revenue
     commission = revenue * DEFAULT_COMMISSION_RATE;
+  }
+
+  // Media buyer commission: same rates as salesman, starts July 1
+  let mediaBuyerCommission = 0;
+  if (date >= MEDIA_BUYER_CUTOFF) {
+    mediaBuyerCommission = fixedRate != null
+      ? revenue * fixedRate
+      : Math.max(0, (revenue - costTotal) * 0.15);
   }
 
   return {
@@ -151,8 +159,9 @@ function calcDelivery(order, delivery, prevTotal, date) {
     todayRepl,
     revenue,
     commission,
+    mediaBuyerCommission,
     replacementLoss,
-    netProfit: revenue - costTotal - commission,
+    netProfit: revenue - costTotal - commission - mediaBuyerCommission,
   };
 }
 
@@ -194,10 +203,11 @@ app.get('/api/dashboard', async (req, res) => {
   const withDel = orders.filter(o => o.todayDelivery);
   res.json({
     date,
-    totalNetProfit:      withDel.reduce((s, o) => s + o.todayDelivery.netProfit, 0),
-    totalRevenue:        withDel.reduce((s, o) => s + o.todayDelivery.revenue, 0),
-    totalCommission:     withDel.reduce((s, o) => s + o.todayDelivery.commission, 0),
-    totalLeads:          withDel.reduce((s, o) => s + o.todayDelivery.leadsDelivered, 0),
+    totalNetProfit:            withDel.reduce((s, o) => s + o.todayDelivery.netProfit, 0),
+    totalRevenue:              withDel.reduce((s, o) => s + o.todayDelivery.revenue, 0),
+    totalCommission:           withDel.reduce((s, o) => s + o.todayDelivery.commission, 0),
+    totalMediaBuyerCommission: withDel.reduce((s, o) => s + o.todayDelivery.mediaBuyerCommission, 0),
+    totalLeads:                withDel.reduce((s, o) => s + o.todayDelivery.leadsDelivered, 0),
     totalReplacementLoss:withDel.reduce((s, o) => s + o.todayDelivery.replacementLoss, 0),
     orders,
   });
