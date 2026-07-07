@@ -194,6 +194,41 @@ function enrichOrder(order, date) {
   };
 }
 
+// ── Business logic (range) ────────────────────────────────────────────────────
+
+function calcRange(order, startDate, endDate) {
+  const deliveries  = order.deliveries || {};
+  const sortedDates = Object.keys(deliveries).sort();
+
+  let prevTotal = 0;
+  let hasData   = false;
+  const agg = { leadsDelivered: 0, revenue: 0, commission: 0, mediaBuyerCommission: 0, replacementLoss: 0, netProfit: 0 };
+
+  for (const d of sortedDates) {
+    const del = calcDelivery(order, deliveries[d], prevTotal, d);
+    if (d >= startDate && d <= endDate) {
+      hasData = true;
+      agg.leadsDelivered       += del.leadsDelivered;
+      agg.revenue              += del.revenue;
+      agg.commission           += del.commission;
+      agg.mediaBuyerCommission += del.mediaBuyerCommission;
+      agg.replacementLoss      += del.replacementLoss;
+      agg.netProfit            += del.netProfit;
+    }
+    prevTotal += deliveries[d].leadsDelivered;
+  }
+
+  const totalExpected = order.quantity + (order.replacements || 0);
+  return {
+    ...order,
+    totalDelivered: prevTotal,
+    totalExpected,
+    remaining: Math.max(0, totalExpected - prevTotal),
+    fulfilled:  prevTotal >= totalExpected,
+    rangeDelivery: hasData ? agg : null,
+  };
+}
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 app.get('/api/dashboard', async (req, res) => {
@@ -209,6 +244,25 @@ app.get('/api/dashboard', async (req, res) => {
     totalMediaBuyerCommission: withDel.reduce((s, o) => s + o.todayDelivery.mediaBuyerCommission, 0),
     totalLeads:                withDel.reduce((s, o) => s + o.todayDelivery.leadsDelivered, 0),
     totalReplacementLoss:withDel.reduce((s, o) => s + o.todayDelivery.replacementLoss, 0),
+    orders,
+  });
+});
+
+app.get('/api/range', async (req, res) => {
+  const { start, end } = req.query;
+  if (!start || !end) return res.status(400).json({ error: 'start and end required' });
+
+  const orders  = (await getAllOrders()).map(o => calcRange(o, start, end));
+  const withDel = orders.filter(o => o.rangeDelivery);
+
+  res.json({
+    start, end,
+    totalNetProfit:            withDel.reduce((s, o) => s + o.rangeDelivery.netProfit, 0),
+    totalRevenue:              withDel.reduce((s, o) => s + o.rangeDelivery.revenue, 0),
+    totalCommission:           withDel.reduce((s, o) => s + o.rangeDelivery.commission, 0),
+    totalMediaBuyerCommission: withDel.reduce((s, o) => s + o.rangeDelivery.mediaBuyerCommission, 0),
+    totalLeads:                withDel.reduce((s, o) => s + o.rangeDelivery.leadsDelivered, 0),
+    totalReplacementLoss:      withDel.reduce((s, o) => s + o.rangeDelivery.replacementLoss, 0),
     orders,
   });
 });

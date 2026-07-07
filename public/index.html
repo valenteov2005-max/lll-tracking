@@ -36,6 +36,24 @@
     }
     .today-btn:hover { border-color: #fff; color: #fff; }
 
+    .view-tabs { display: flex; gap: 0.35rem; }
+    .view-tab {
+      background: transparent; border: 1px solid #333; color: #555;
+      padding: 0.3rem 0.75rem; border-radius: 6px; cursor: pointer;
+      font-size: 0.75rem; font-weight: 600; transition: all 0.15s;
+    }
+    .view-tab:hover { border-color: #888; color: #aaa; }
+    .view-tab.active { border-color: #fff; color: #fff; background: #1a1a1a; }
+
+    .range-nav { display: none; align-items: center; gap: 0.5rem; margin-left: auto; flex-wrap: wrap; }
+    .range-nav input[type=date] {
+      background: #111; border: 1px solid #333; color: #fff; border-radius: 6px;
+      padding: 0.3rem 0.6rem; font-size: 0.82rem; font-family: inherit; cursor: pointer;
+    }
+    .range-nav input[type=date]:focus { outline: none; border-color: #fff; }
+    .range-sep { color: #444; font-size: 0.85rem; }
+    .range-badge { background: #1a1a1a; border: 1px solid #333; color: #666; font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; }
+
     main { max-width: 1400px; margin: 0 auto; padding: 2rem; }
 
     .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
@@ -166,12 +184,22 @@
 <header>
   <h1>LLL TRACKING</h1>
   <span class="badge">Live</span>
-  <div class="date-nav">
+  <div class="view-tabs">
+    <button class="view-tab active" id="tabDay" onclick="setView('day')">Day</button>
+    <button class="view-tab" id="tabRange" onclick="setView('range')">Range</button>
+  </div>
+  <div class="date-nav" id="dateNav">
     <button onclick="shiftDate(-1)">&#8592;</button>
     <span class="date-display" onclick="document.getElementById('datePickerInput').showPicker()" id="dateDisplay">—</span>
     <input type="date" id="datePickerInput" onchange="onDatePick(this.value)" />
     <button onclick="shiftDate(1)">&#8594;</button>
     <button class="today-btn" onclick="goToday()">Today</button>
+  </div>
+  <div class="range-nav" id="rangeNav">
+    <input type="date" id="rangeStart" />
+    <span class="range-sep">to</span>
+    <input type="date" id="rangeEnd" />
+    <button class="today-btn" onclick="applyRange()">Apply</button>
   </div>
 </header>
 
@@ -322,7 +350,8 @@
   let currentDate    = localToday();
   let dashData       = null;
   let showFulfilled  = false;
-  let deliveryOrder  = null; // the order currently being logged
+  let deliveryOrder  = null;
+  let viewMode       = 'day'; // 'day' | 'range'
 
   function fmtDate(d) {
     const [y,m,day] = d.split('-');
@@ -345,12 +374,115 @@
 
   function onDatePick(val) { if (val) { currentDate = val; load(); } }
 
+  function setView(mode) {
+    viewMode = mode;
+    document.getElementById('tabDay').classList.toggle('active', mode === 'day');
+    document.getElementById('tabRange').classList.toggle('active', mode === 'range');
+    document.getElementById('dateNav').style.display   = mode === 'day'   ? 'flex' : 'none';
+    document.getElementById('rangeNav').style.display  = mode === 'range' ? 'flex' : 'none';
+    if (mode === 'day') {
+      load();
+    } else {
+      // default range: first day of current month to today
+      const today = localToday();
+      const firstOfMonth = today.slice(0, 8) + '01';
+      document.getElementById('rangeStart').value = firstOfMonth;
+      document.getElementById('rangeEnd').value   = today;
+      applyRange();
+    }
+  }
+
+  async function applyRange() {
+    const start = document.getElementById('rangeStart').value;
+    const end   = document.getElementById('rangeEnd').value;
+    if (!start || !end) return;
+    const res  = await fetch(`/api/range?start=${start}&end=${end}`);
+    const data = await res.json();
+    renderRange(data);
+  }
+
+  function renderRange(d) {
+    const p = d.totalNetProfit;
+    const profitEl = document.getElementById('statProfit');
+    profitEl.textContent = fmtP(p);
+    profitEl.className   = 'value' + (p < 0 ? ' neg' : '');
+    document.getElementById('statRevenue').textContent   = fmt(d.totalRevenue);
+    document.getElementById('statCommission').textContent = fmt(d.totalCommission);
+    document.getElementById('statMediaBuyer').textContent = fmt(d.totalMediaBuyerCommission || 0);
+    document.getElementById('statLeads').textContent     = d.totalLeads;
+    document.getElementById('statActive').textContent    = d.orders.filter(o => !o.fulfilled).length;
+
+    const orders = showFulfilled ? d.orders : d.orders.filter(o => !o.fulfilled);
+    const wrap   = document.getElementById('ordersWrap');
+
+    if (!orders.length) {
+      wrap.innerHTML = `<div class="empty">${d.orders.length ? 'No active orders for this range' : 'No orders yet'}</div>`;
+      return;
+    }
+
+    const rows = orders.map(o => {
+      const del  = o.rangeDelivery;
+      const pct  = Math.min(100, Math.round(o.totalDelivered / (o.totalExpected || o.quantity) * 100));
+      const done = o.fulfilled;
+
+      const progressHtml = `
+        <div class="progress-bar">
+          <div class="progress-track"><div class="progress-fill ${done?'done':''}" style="width:${pct}%"></div></div>
+          <span class="progress-label">${o.totalDelivered}/${o.totalExpected || o.quantity}</span>
+        </div>`;
+
+      const orderLabel = o.replacements > 0
+        ? `${o.quantity}+${o.replacements}r @ ${fmt(o.pricePerLead)}`
+        : `${o.quantity} @ ${fmt(o.pricePerLead)}`;
+
+      const delCells = del
+        ? `<td class="section-start">${del.leadsDelivered}</td>
+           <td>${fmt(del.revenue)}</td>
+           <td>${fmt(del.commission)}</td>
+           <td>${del.mediaBuyerCommission > 0 ? fmt(del.mediaBuyerCommission) : '—'}</td>
+           <td>${del.replacementLoss > 0 ? `<span style="color:#f87171">-${fmt(del.replacementLoss)}</span>` : '—'}</td>
+           <td class="td-profit ${cls(del.netProfit)}">${fmtP(del.netProfit)}</td>`
+        : `<td class="section-start not-logged" colspan="6">No deliveries in range</td>`;
+
+      return `<tr>
+        <td><span class="status-pill ${done?'status-fulfilled':'status-active'}">${done?'Fulfilled':'Active'}</span></td>
+        <td class="td-bold">${esc(o.clientName)||'<span style="color:#333">—</span>'}</td>
+        <td><span class="tag">${esc(o.product)}</span></td>
+        <td>${orderLabel}</td>
+        <td>${progressHtml}</td>
+        ${delCells}
+        <td><button class="row-btn" onclick="openEditOrder(${o.id})">Edit</button></td>
+      </tr>`;
+    }).join('');
+
+    const withDel  = orders.filter(o => o.rangeDelivery);
+    const totalRow = withDel.length > 1 ? `
+      <tr class="total-row">
+        <td colspan="5" style="color:#555;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em">Range Total</td>
+        <td class="section-start">${d.totalLeads}</td>
+        <td>${fmt(d.totalRevenue)}</td>
+        <td>${fmt(d.totalCommission)}</td>
+        <td>${d.totalMediaBuyerCommission > 0 ? fmt(d.totalMediaBuyerCommission) : '—'}</td>
+        ${d.totalReplacementLoss > 0 ? `<td><span style="color:#f87171">-${fmt(d.totalReplacementLoss)}</span></td>` : '<td></td>'}
+        <td class="td-profit ${cls(d.totalNetProfit)}">${fmtP(d.totalNetProfit)}</td>
+        <td></td>
+      </tr>` : '';
+
+    wrap.innerHTML = `<table>
+      <thead><tr>
+        <th>Status</th><th>Client</th><th>Product</th><th>Order</th><th>Progress</th>
+        <th class="section-start">Leads</th><th>Revenue</th><th>Salesman</th><th>Media Buyer</th><th>Repl. Loss</th><th>Net Profit</th><th></th>
+      </tr></thead>
+      <tbody>${rows}${totalRow}</tbody>
+    </table>`;
+  }
+
   function toggleFulfilled() {
     showFulfilled = !showFulfilled;
     const btn = document.getElementById('toggleFulfilledBtn');
     btn.textContent = showFulfilled ? 'Hide Fulfilled' : 'Show Fulfilled';
     btn.classList.toggle('active', showFulfilled);
-    if (dashData) render(dashData);
+    if (viewMode === 'range') applyRange(); else if (dashData) render(dashData);
   }
 
   async function load() {
